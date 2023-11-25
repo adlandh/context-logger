@@ -22,10 +22,15 @@ func WithContext(logger *zap.Logger, extractors ...ContextExtractor) *ContextLog
 }
 
 func (c ContextLogger) Ctx(ctx context.Context) *zap.Logger {
-	logger := c.logger
+	var additionalFields []zap.Field
+
 	for _, f := range c.extractors {
-		logger = c.logger.With(f(ctx)...)
+		additionalFields = append(additionalFields, f(ctx)...)
 	}
 
-	return logger
+	if len(additionalFields) == 0 {
+		return c.logger
+	}
+
+	return c.logger.With(additionalFields...)
 }
