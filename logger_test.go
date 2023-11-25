@@ -32,6 +32,12 @@ type MemorySink struct {
 	*bytes.Buffer
 }
 
+type contextKeyStruct struct{}
+
+func (k contextKeyStruct) String() string {
+	return "contextKeyStruct"
+}
+
 // Implement Close and Sync as no-ops to satisfy the interface. The Write
 // method is provided by the embedded buffer.
 
@@ -67,7 +73,7 @@ func TestContextLogger(t *testing.T) {
 
 		key1 := contextKeyString(gofakeit.Word())
 		key2 := contextKeyInt(gofakeit.Int8())
-		key3 := gofakeit.Bool()
+		key3 := contextKeyStruct{}
 
 		val1 := gofakeit.SentenceSimple()
 		val2 := gofakeit.Uint8()
