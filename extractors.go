@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/getsentry/sentry-go"
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
@@ -37,6 +38,23 @@ func WithValueExtractor(key ...fmt.Stringer) ContextExtractor {
 				fields = append(fields, zap.Any(k.String(), val))
 			}
 		}
+
+		return fields
+	}
+}
+
+func WithSentryExtractor() ContextExtractor {
+	return func(ctx context.Context) []zap.Field {
+		transaction := sentry.TransactionFromContext(ctx)
+		if transaction == nil {
+			return nil
+		}
+
+		fields := make([]zap.Field, 3)
+
+		fields[0] = zap.String("trace_id", transaction.TraceID.String())
+		fields[1] = zap.String("span_id", transaction.SpanID.String())
+		fields[2] = zap.String("span_status", transaction.Status.String())
 
 		return fields
 	}
