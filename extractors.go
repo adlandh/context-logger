@@ -2,6 +2,7 @@ package contextlogger
 
 import (
 	"context"
+	"fmt"
 
 	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
@@ -23,7 +24,7 @@ func WithOtelExtractor() ContextExtractor {
 	}
 }
 
-func WithValueExtractor(key ...string) ContextExtractor {
+func WithValueExtractor(key ...fmt.Stringer) ContextExtractor {
 	return func(ctx context.Context) []zap.Field {
 		if len(key) == 0 {
 			return nil
@@ -33,7 +34,7 @@ func WithValueExtractor(key ...string) ContextExtractor {
 
 		for _, k := range key {
 			if val := ctx.Value(k); val != nil {
-				fields = append(fields, zap.Any(k, val))
+				fields = append(fields, zap.Any(k.String(), val))
 			}
 		}
 

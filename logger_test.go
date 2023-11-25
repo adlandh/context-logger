@@ -16,6 +16,18 @@ import (
 	"go.uber.org/zap"
 )
 
+type contextKeyInt int
+
+func (k contextKeyInt) String() string {
+	return fmt.Sprintf("%d", k)
+}
+
+type contextKeyString string
+
+func (k contextKeyString) String() string {
+	return string(k)
+}
+
 type MemorySink struct {
 	*bytes.Buffer
 }
@@ -42,7 +54,7 @@ func TestContextLogger(t *testing.T) {
 
 	t.Run("test context logger with no extractors", func(t *testing.T) {
 		logger := WithContext(l)
-		key := gofakeit.Word()
+		key := contextKeyInt(gofakeit.Int8())
 		val := gofakeit.SentenceSimple()
 		ctx := context.WithValue(context.Background(), key, val)
 		logger.Ctx(ctx).Info("test message")
@@ -52,9 +64,10 @@ func TestContextLogger(t *testing.T) {
 	})
 
 	t.Run("test context logger with value extractor", func(t *testing.T) {
-		key1 := gofakeit.Word()
-		key2 := gofakeit.Word()
-		key3 := gofakeit.Word()
+
+		key1 := contextKeyString(gofakeit.Word())
+		key2 := contextKeyInt(gofakeit.Int8())
+		key3 := gofakeit.Bool()
 
 		val1 := gofakeit.SentenceSimple()
 		val2 := gofakeit.Uint8()
