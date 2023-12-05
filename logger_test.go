@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log"
 	"net/url"
 	"sync"
 	"testing"
@@ -95,6 +96,7 @@ func TestContextLogger(t *testing.T) {
 		require.Contains(t, sink.String(), "\"text\":\"test\"")
 		require.NotContains(t, sink.String(), key)
 		require.NotContains(t, sink.String(), val)
+		require.NotContains(t, sink.String(), ContextKey)
 	})
 
 	t.Run("test context logger with value extractor", func(t *testing.T) {
@@ -117,6 +119,7 @@ func TestContextLogger(t *testing.T) {
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", key1, val1))
 		require.NotContains(t, sink.String(), key2)
 		require.NotContains(t, sink.String(), key3)
+		require.NotContains(t, sink.String(), ContextKey)
 
 		message = gofakeit.SentenceSimple()
 		ctx = context.WithValue(ctx, key2, val2)
@@ -126,6 +129,7 @@ func TestContextLogger(t *testing.T) {
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", key1, val1))
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%d", key2, val2))
 		require.NotContains(t, sink.String(), key3)
+		require.NotContains(t, sink.String(), ContextKey)
 
 		message = gofakeit.SentenceSimple()
 		ctx = context.WithValue(ctx, key3, val3)
@@ -135,6 +139,7 @@ func TestContextLogger(t *testing.T) {
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", key1, val1))
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%d", key2, val2))
 		require.NotContains(t, sink.String(), key3)
+		require.NotContains(t, sink.String(), ContextKey)
 	})
 
 	t.Run("test context logger with otel extractor with no tracer", func(t *testing.T) {
@@ -149,6 +154,7 @@ func TestContextLogger(t *testing.T) {
 		require.Contains(t, sink.String(), "\"text\":\"test\"")
 		require.NotContains(t, sink.String(), "trace_id")
 		require.NotContains(t, sink.String(), "span_id")
+		require.NotContains(t, sink.String(), ContextKey)
 	})
 
 	t.Run("test context logger with otel extractor with tracer", func(t *testing.T) {
@@ -171,6 +177,7 @@ func TestContextLogger(t *testing.T) {
 		require.Contains(t, sink.String(), "\"text\":\"test\"")
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "trace_id", sc.TraceID().String()))
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "span_id", sc.SpanID().String()))
+		require.NotContains(t, sink.String(), ContextKey)
 	})
 
 	t.Run("test context logger with sentry extractor with no tracer", func(t *testing.T) {
@@ -186,6 +193,7 @@ func TestContextLogger(t *testing.T) {
 		require.NotContains(t, sink.String(), "trace_id")
 		require.NotContains(t, sink.String(), "span_id")
 		require.NotContains(t, sink.String(), "span_status")
+		require.NotContains(t, sink.String(), ContextKey)
 	})
 
 	t.Run("test context logger with sentry extractor with tracer", func(t *testing.T) {
@@ -199,17 +207,27 @@ func TestContextLogger(t *testing.T) {
 		require.NoError(t, err)
 		spanName := gofakeit.Word()
 
-		span := sentry.StartSpan(context.Background(), spanName)
-		ctx := span.Context()
+		rootspan := sentry.StartSpan(context.Background(), spanName+"_root")
+		ctx := rootspan.Context()
+		defer rootspan.Finish()
+
+		span := sentry.StartSpan(ctx, spanName)
+		ctx = span.Context()
 		defer span.Finish()
 
 		logger := WithContext(l, WithSentryExtractor())
 		logger.Ctx(ctx).Info(message)
 		require.Contains(t, sink.String(), message)
 		require.Contains(t, sink.String(), "\"text\":\"test\"")
+		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "trace_id", rootspan.TraceID.String()))
+		require.NotContains(t, sink.String(), fmt.Sprintf("%q:%q", "span_id", rootspan.SpanID.String()))
+		require.NotContains(t, sink.String(), fmt.Sprintf("%q:%q", "span_op", rootspan.Op))
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "trace_id", span.TraceID.String()))
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "span_id", span.SpanID.String()))
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "span_status", span.Status.String()))
+		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "span_op", span.Op))
+		require.NotContains(t, sink.String(), ContextKey)
+		log.Println(sink.String())
 	})
 
 	t.Run("test context logger with sentry extractor with otel tracer", func(t *testing.T) {
@@ -235,6 +253,6 @@ func TestContextLogger(t *testing.T) {
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "trace_id", sc.TraceID().String()))
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "span_id", sc.SpanID().String()))
 		require.NotContains(t, sink.String(), "span_status")
+		require.NotContains(t, sink.String(), ContextKey)
 	})
-
 }

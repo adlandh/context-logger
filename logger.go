@@ -5,7 +5,10 @@ import (
 	"context"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
+
+const ContextKey = "context-logger-context"
 
 type ContextExtractor func(ctx context.Context) []zap.Field
 
@@ -28,9 +31,11 @@ func (c ContextLogger) Ctx(ctx context.Context) *zap.Logger {
 		additionalFields = append(additionalFields, f(ctx)...)
 	}
 
-	if len(additionalFields) == 0 {
-		return c.logger
-	}
+	additionalFields = append(additionalFields, zap.Field{
+		Key:       ContextKey,
+		Type:      zapcore.SkipType,
+		Interface: ctx,
+	})
 
 	return c.logger.With(additionalFields...)
 }
