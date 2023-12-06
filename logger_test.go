@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"net/url"
 	"sync"
 	"testing"
@@ -227,7 +226,6 @@ func TestContextLogger(t *testing.T) {
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "span_status", span.Status.String()))
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "span_op", span.Op))
 		require.NotContains(t, sink.String(), ContextKey)
-		log.Println(sink.String())
 	})
 
 	t.Run("test context logger with sentry extractor with otel tracer", func(t *testing.T) {
