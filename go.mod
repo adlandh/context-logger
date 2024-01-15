@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/brianvoe/gofakeit/v6 v6.26.3
-	github.com/getsentry/sentry-go v0.25.0
+	github.com/getsentry/sentry-go v0.26.0
 	github.com/stretchr/testify v1.8.4
 	go.opentelemetry.io/otel v1.21.0
 	go.opentelemetry.io/otel/trace v1.21.0
