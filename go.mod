@@ -3,7 +3,7 @@ module github.com/adlandh/context-logger
 go 1.21
 
 require (
-	github.com/brianvoe/gofakeit/v6 v6.26.4
+	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/getsentry/sentry-go v0.26.0
 	github.com/stretchr/testify v1.8.4
 	go.opentelemetry.io/otel v1.21.0
