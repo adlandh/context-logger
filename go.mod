@@ -1,6 +1,6 @@
 module github.com/adlandh/context-logger
 
-go 1.22
+go 1.22.0
 
 require (
 	github.com/brianvoe/gofakeit/v7 v7.0.1
