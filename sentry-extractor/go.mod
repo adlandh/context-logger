@@ -8,7 +8,7 @@ replace (
 )
 
 require (
-	github.com/adlandh/context-logger v1.2.4
+	github.com/adlandh/context-logger v0.0.0-00010101000000-000000000000
 	github.com/adlandh/context-logger/otel-extractor v0.0.0-00010101000000-000000000000
 	github.com/brianvoe/gofakeit/v7 v7.0.2
 	github.com/getsentry/sentry-go v0.27.0

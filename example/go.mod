@@ -7,7 +7,7 @@ toolchain go1.22.2
 replace github.com/adlandh/context-logger => ../
 
 require (
-	github.com/adlandh/context-logger v1.2.4
+	github.com/adlandh/context-logger v0.0.0-00010101000000-000000000000
 	github.com/labstack/echo/v4 v4.11.4
 	go.uber.org/zap v1.27.0
 )
