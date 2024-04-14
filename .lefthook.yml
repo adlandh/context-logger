@@ -3,7 +3,7 @@ pre-push:
   commands:
     lint:
       glob: "*.go"
-      run: golangci-lint run
+      run: golangci-lint run && cd ./otel-extractor && golangci-lint run && cd ../sentry-extractor && golangci-lint run
     test:
       glob: "*.go"
-      run: go test -cover -race ./...
+      run: go test -cover -race ./... && cd ./otel-extractor && go test -cover -race ./... && cd ../sentry-extractor && go test -cover -race ./...
