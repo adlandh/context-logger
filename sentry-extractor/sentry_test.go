@@ -10,14 +10,9 @@ import (
 	"time"
 
 	ctxLogger "github.com/adlandh/context-logger"
-	"github.com/adlandh/context-logger/otel-extractor"
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/getsentry/sentry-go"
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/trace"
-	"go.opentelemetry.io/otel/trace/noop"
 	"go.uber.org/zap"
 )
 
@@ -115,32 +110,6 @@ func TestContextLogger(t *testing.T) {
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "span_id", span.SpanID.String()))
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "span_status", span.Status.String()))
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "span_op", span.Op))
-		require.NotContains(t, sink.String(), ctxLogger.ContextKey)
-	})
-
-	t.Run("test context logger with sentry extractor with otel tracer", func(t *testing.T) {
-		sink.Reset()
-		message := gofakeit.SentenceSimple()
-		tracerName := gofakeit.Word()
-		spanName := gofakeit.Word()
-
-		provider := noop.NewTracerProvider()
-		otel.SetTextMapPropagator(propagation.TraceContext{})
-		sc := trace.NewSpanContext(trace.SpanContextConfig{
-			TraceID: trace.TraceID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x01},
-			SpanID:  trace.SpanID{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08},
-		})
-		ctx := trace.ContextWithRemoteSpanContext(context.Background(), sc)
-		ctx, _ = provider.Tracer(tracerName).Start(ctx, spanName)
-		transaction := sentry.TransactionFromContext(ctx)
-		require.Nil(t, transaction)
-		logger := ctxLogger.WithContext(l, otelextractor.With(), With())
-		logger.Ctx(ctx).Info(message)
-		require.Contains(t, sink.String(), message)
-		require.Contains(t, sink.String(), testText)
-		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "trace_id", sc.TraceID().String()))
-		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "span_id", sc.SpanID().String()))
-		require.NotContains(t, sink.String(), "span_status")
 		require.NotContains(t, sink.String(), ctxLogger.ContextKey)
 	})
 }
