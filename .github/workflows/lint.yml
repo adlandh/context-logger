@@ -22,20 +22,13 @@ jobs:
 
       - name: Lint Code Base
         uses: golangci/golangci-lint-action@v4
-        with:
-          version: latest
-          install-mode: goinstall
 
       - name: Lint Code Base (sentry-extractor)
         uses: golangci/golangci-lint-action@v4
         with:
-          version: latest
-          install-mode: goinstall
-          workdir: sentry-extractor
+          working-directory: ./sentry-extractor
 
       - name: Lint Code Base (otel-extractor)
         uses: golangci/golangci-lint-action@v4
         with:
-          version: latest
-          install-mode: goinstall
-          workdir: otel-extractor
+          working-directory: ./otel-extractor
