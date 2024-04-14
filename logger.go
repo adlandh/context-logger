@@ -3,6 +3,7 @@ package contextlogger
 
 import (
 	"context"
+	"fmt"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -38,4 +39,22 @@ func (c ContextLogger) Ctx(ctx context.Context) *zap.Logger {
 	})
 
 	return c.logger.With(additionalFields...)
+}
+
+func WithValueExtractor(key ...fmt.Stringer) ContextExtractor {
+	return func(ctx context.Context) []zap.Field {
+		if len(key) == 0 {
+			return nil
+		}
+
+		fields := make([]zap.Field, 0, len(key))
+
+		for _, k := range key {
+			if val := ctx.Value(k); val != nil {
+				fields = append(fields, zap.Any(k.String(), val))
+			}
+		}
+
+		return fields
+	}
 }
