@@ -6,7 +6,7 @@ toolchain go1.22.0
 
 require (
 	github.com/adlandh/context-logger v1.3.3
-	github.com/brianvoe/gofakeit/v7 v7.0.2
+	github.com/brianvoe/gofakeit/v7 v7.0.3
 	github.com/stretchr/testify v1.9.0
 	go.opentelemetry.io/otel v1.26.0
 	go.opentelemetry.io/otel/trace v1.26.0
