@@ -1,7 +1,8 @@
 module github.com/adlandh/context-logger/otel-extractor
 
-go 1.22
-toolchain go1.22.5
+go 1.22.0
+
+toolchain go1.23.4
 
 require (
 	github.com/adlandh/context-logger v1.3.3
