@@ -28,21 +28,24 @@ type memorySink struct {
 func (s *memorySink) Close() error { return nil }
 func (s *memorySink) Sync() error  { return nil }
 
+var _ sentry.Transport = (*transportMock)(nil)
+
 type transportMock struct {
 	sync.Mutex
 	events []*sentry.Event
 }
 
-func (t *transportMock) Configure(_ sentry.ClientOptions) { /* stub */ }
+func (*transportMock) Configure(_ sentry.ClientOptions) { /* stub */ }
 func (t *transportMock) SendEvent(event *sentry.Event) {
 	t.events = append(t.events, event)
 }
-func (t *transportMock) Flush(_ time.Duration) bool {
+func (*transportMock) Flush(_ time.Duration) bool {
 	return true
 }
 func (t *transportMock) Events() []*sentry.Event {
 	return t.events
 }
+func (*transportMock) Close() { /* stub */ }
 
 func TestContextLogger(t *testing.T) {
 	sink := &memorySink{new(bytes.Buffer)}
