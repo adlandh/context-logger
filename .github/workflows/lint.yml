@@ -16,14 +16,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Lint Code Base
-        uses: golangci/golangci-lint-action@v4
+        uses: golangci/golangci-lint-action@v6
 
       - name: Lint Code Base (sentry-extractor)
-        uses: golangci/golangci-lint-action@v4
+        uses: golangci/golangci-lint-action@v6
         with:
           working-directory: ./sentry-extractor
 
       - name: Lint Code Base (otel-extractor)
-        uses: golangci/golangci-lint-action@v4
+        uses: golangci/golangci-lint-action@v6
         with:
           working-directory: ./otel-extractor
