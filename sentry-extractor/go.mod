@@ -1,8 +1,8 @@
 module github.com/adlandh/context-logger/sentry-extractor
 
-go 1.22
+go 1.23.0
 
-toolchain go1.22.0
+toolchain go1.24.2
 
 require (
 	github.com/adlandh/context-logger v1.3.3
@@ -14,10 +14,10 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/google/go-cmp v0.6.0 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/sys v0.29.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/sys v0.32.0 // indirect
+	golang.org/x/text v0.24.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
