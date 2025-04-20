@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.24.2
 
 require (
-	github.com/adlandh/context-logger v1.3.3
+	github.com/adlandh/context-logger v1.3.4
 	github.com/brianvoe/gofakeit/v7 v7.2.1
 	github.com/getsentry/sentry-go v0.32.0
 	github.com/stretchr/testify v1.10.0
