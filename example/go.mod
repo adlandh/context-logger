@@ -1,7 +1,6 @@
 module github.com/adlandh/context-logger/example
 
-go 1.22
-toolchain go1.23.7
+go 1.23.0
 
 replace github.com/adlandh/context-logger => ../
 
