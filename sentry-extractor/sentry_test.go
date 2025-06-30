@@ -42,6 +42,9 @@ func (t *transportMock) SendEvent(event *sentry.Event) {
 func (*transportMock) Flush(_ time.Duration) bool {
 	return true
 }
+func (t *transportMock) FlushWithContext(ctx context.Context) bool {
+	return t.Flush(0)
+}
 func (t *transportMock) Events() []*sentry.Event {
 	return t.events
 }
