@@ -8,7 +8,7 @@ require (
 	github.com/adlandh/context-logger v1.3.4
 	github.com/brianvoe/gofakeit/v7 v7.4.0
 	github.com/getsentry/sentry-go v0.35.1
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.0
 	go.uber.org/zap v1.27.0
 )
 
