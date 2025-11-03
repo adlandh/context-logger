@@ -72,7 +72,7 @@ func TestContextLogger(t *testing.T) {
 
 	t.Run("test context logger with sentry extractor with no tracer", func(t *testing.T) {
 		sink.Reset()
-		message := gofakeit.SentenceSimple()
+		message := gofakeit.Sentence()
 		ctx := context.Background()
 		transaction := sentry.TransactionFromContext(ctx)
 		require.Nil(t, transaction)
@@ -88,7 +88,7 @@ func TestContextLogger(t *testing.T) {
 
 	t.Run("test context logger with sentry extractor with tracer", func(t *testing.T) {
 		sink.Reset()
-		message := gofakeit.SentenceSimple()
+		message := gofakeit.Sentence()
 		err := sentry.Init(sentry.ClientOptions{
 			Transport:   transport,
 			Environment: "test",
