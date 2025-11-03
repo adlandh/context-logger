@@ -49,7 +49,7 @@ func TestContextLoggerWithOtelExtractor(t *testing.T) {
 
 	t.Run("test context logger with otel extractor with no tracer", func(t *testing.T) {
 		sink.Reset()
-		message := gofakeit.SentenceSimple()
+		message := gofakeit.Sentence()
 		ctx := context.Background()
 		spanContext := trace.SpanContextFromContext(ctx)
 		require.False(t, spanContext.IsValid())
@@ -64,7 +64,7 @@ func TestContextLoggerWithOtelExtractor(t *testing.T) {
 
 	t.Run("test context logger with otel extractor with tracer", func(t *testing.T) {
 		sink.Reset()
-		message := gofakeit.SentenceSimple()
+		message := gofakeit.Sentence()
 		tracerName := gofakeit.Word()
 		spanName := gofakeit.Word()
 
