@@ -62,10 +62,10 @@ func TestContextLogger(t *testing.T) {
 
 	t.Run("test context logger with no extractors", func(t *testing.T) {
 		sink.Reset()
-		message := gofakeit.SentenceSimple()
+		message := gofakeit.Sentence()
 		logger := WithContext(l)
 		key := contextKeyInt(gofakeit.Int8())
-		val := gofakeit.SentenceSimple()
+		val := gofakeit.Sentence()
 		ctx := context.WithValue(context.Background(), key, val)
 		logger.Ctx(ctx).Info(message)
 		require.Contains(t, sink.String(), message)
@@ -77,12 +77,12 @@ func TestContextLogger(t *testing.T) {
 
 	t.Run("test context logger with value extractor", func(t *testing.T) {
 		sink.Reset()
-		message := gofakeit.SentenceSimple()
+		message := gofakeit.Sentence()
 		key1 := contextKeyString(gofakeit.Word())
 		key2 := contextKeyInt(gofakeit.Int8())
 		key3 := contextKeyStruct{}
 
-		val1 := gofakeit.SentenceSimple()
+		val1 := gofakeit.Sentence()
 		val2 := gofakeit.Uint8()
 		val3 := gofakeit.Bool()
 
@@ -97,7 +97,7 @@ func TestContextLogger(t *testing.T) {
 		require.NotContains(t, sink.String(), key3)
 		require.NotContains(t, sink.String(), ContextKey)
 
-		message = gofakeit.SentenceSimple()
+		message = gofakeit.Sentence()
 		ctx = context.WithValue(ctx, key2, val2)
 		logger.Ctx(ctx).Info(message)
 		require.Contains(t, sink.String(), message)
@@ -107,7 +107,7 @@ func TestContextLogger(t *testing.T) {
 		require.NotContains(t, sink.String(), key3)
 		require.NotContains(t, sink.String(), ContextKey)
 
-		message = gofakeit.SentenceSimple()
+		message = gofakeit.Sentence()
 		ctx = context.WithValue(ctx, key3, val3)
 		logger.Ctx(ctx).Info(message)
 		require.Contains(t, sink.String(), message)
