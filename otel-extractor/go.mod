@@ -1,12 +1,10 @@
 module github.com/adlandh/context-logger/otel-extractor
 
-go 1.23.0
-
-toolchain go1.23.4
+go 1.25
 
 require (
 	github.com/adlandh/context-logger v1.3.4
-	github.com/brianvoe/gofakeit/v7 v7.9.0
+	github.com/brianvoe/gofakeit/v7 v7.11.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/otel v1.38.0
 	go.opentelemetry.io/otel/trace v1.38.0
