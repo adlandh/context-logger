@@ -1,15 +1,13 @@
 module github.com/adlandh/context-logger/example
 
-go 1.24.0
-
-toolchain go1.24.2
+go 1.25
 
 replace github.com/adlandh/context-logger => ../
 
 require (
-	github.com/adlandh/context-logger v1.3.4
+	github.com/adlandh/context-logger v1.3.5
 	github.com/labstack/echo/v4 v4.13.4
-	go.uber.org/zap v1.27.0
+	go.uber.org/zap v1.27.1
 )
 
 require (
@@ -23,5 +21,5 @@ require (
 	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/sys v0.38.0 // indirect
 	golang.org/x/text v0.31.0 // indirect
-	golang.org/x/time v0.12.0 // indirect
+	golang.org/x/time v0.14.0 // indirect
 )
