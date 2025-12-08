@@ -1,7 +1,7 @@
 github.com/adlandh/context-logger v1.3.5 h1:QVM4Nh4DXnyz3/NyQh6evYKvacNMa7FLSc2g+o0byIY=
 github.com/adlandh/context-logger v1.3.5/go.mod h1:ywfAUvZdIuAU7tjte+ZWu9it6UPlIhQve9imIt9UdY8=
-github.com/brianvoe/gofakeit/v7 v7.12.0 h1:5gHj4XiZUOBF5dIzFxz5mqlaUjahYk09RtT+51iQkuA=
-github.com/brianvoe/gofakeit/v7 v7.12.0/go.mod h1:OllskdkFOHg1ECRPXRV7OKSLcabgRY0YuzstuBoEFFk=
+github.com/brianvoe/gofakeit/v7 v7.12.1 h1:df1tiI4SL1dR5Ix4D/r6a3a+nXBJ/OBGU5jEKRBmmqg=
+github.com/brianvoe/gofakeit/v7 v7.12.1/go.mod h1:QXuPeBw164PJCzCUZVmgpgHJ3Llj49jSLVkKPMtxtxA=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/go-logr/logr v1.2.2/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
