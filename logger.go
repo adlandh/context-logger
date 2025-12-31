@@ -9,8 +9,6 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-const ContextKey = "context-logger-context"
-
 type ContextExtractor func(ctx context.Context) []zap.Field
 
 type ContextLogger struct {
@@ -26,22 +24,23 @@ func WithContext(logger *zap.Logger, extractors ...ContextExtractor) *ContextLog
 }
 
 func (c ContextLogger) Ctx(ctx context.Context) *zap.Logger {
-	var additionalFields []zap.Field
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	additionalFields := make([]zap.Field, 0, len(c.extractors))
 
 	for _, f := range c.extractors {
 		additionalFields = append(additionalFields, f(ctx)...)
 	}
 
-	additionalFields = append(additionalFields, zap.Field{
-		Key:       ContextKey,
-		Type:      zapcore.SkipType,
-		Interface: ctx,
-	})
-
 	return c.logger.With(additionalFields...)
 }
 
-func WithValueExtractor(key ...fmt.Stringer) ContextExtractor {
+func WithValueExtractor[T interface {
+	comparable
+	fmt.Stringer
+}](key ...T) ContextExtractor {
 	return func(ctx context.Context) []zap.Field {
 		if len(key) == 0 {
 			return nil
@@ -56,5 +55,21 @@ func WithValueExtractor(key ...fmt.Stringer) ContextExtractor {
 		}
 
 		return fields
+	}
+}
+
+func WithContextCarrier(fieldName string) ContextExtractor {
+	return func(ctx context.Context) []zap.Field {
+		if fieldName == "" {
+			return nil
+		}
+
+		return []zap.Field{
+			{
+				Key:       fieldName,
+				Type:      zapcore.SkipType,
+				Interface: ctx,
+			},
+		}
 	}
 }
