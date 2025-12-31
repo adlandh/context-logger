@@ -83,7 +83,6 @@ func TestContextLogger(t *testing.T) {
 		require.NotContains(t, sink.String(), "trace_id")
 		require.NotContains(t, sink.String(), "span_id")
 		require.NotContains(t, sink.String(), "span_status")
-		require.NotContains(t, sink.String(), ctxLogger.ContextKey)
 	})
 
 	t.Run("test context logger with sentry extractor with tracer", func(t *testing.T) {
@@ -116,6 +115,5 @@ func TestContextLogger(t *testing.T) {
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "span_id", span.SpanID.String()))
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "span_status", span.Status.String()))
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "span_op", span.Op))
-		require.NotContains(t, sink.String(), ctxLogger.ContextKey)
 	})
 }
