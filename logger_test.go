@@ -12,6 +12,8 @@ import (
 	"go.uber.org/zap"
 )
 
+const contextKey = "context-logger-context"
+
 const testText = "\"text\":\"test\""
 
 type contextKeyInt int
@@ -72,7 +74,7 @@ func TestContextLogger(t *testing.T) {
 		require.Contains(t, sink.String(), testText)
 		require.NotContains(t, sink.String(), key)
 		require.NotContains(t, sink.String(), val)
-		require.NotContains(t, sink.String(), ContextKey)
+		require.NotContains(t, sink.String(), contextKey)
 	})
 
 	t.Run("test context logger with value extractor", func(t *testing.T) {
@@ -86,7 +88,7 @@ func TestContextLogger(t *testing.T) {
 		val2 := gofakeit.Uint8()
 		val3 := gofakeit.Bool()
 
-		logger := WithContext(l, WithValueExtractor(key1, key2))
+		logger := WithContext(l, WithValueExtractor(key1), WithValueExtractor(key2), WithContextCarrier(contextKey))
 
 		ctx := context.WithValue(context.Background(), key1, val1)
 		logger.Ctx(ctx).Info(message)
@@ -95,7 +97,7 @@ func TestContextLogger(t *testing.T) {
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", key1, val1))
 		require.NotContains(t, sink.String(), key2)
 		require.NotContains(t, sink.String(), key3)
-		require.NotContains(t, sink.String(), ContextKey)
+		require.NotContains(t, sink.String(), contextKey)
 
 		message = gofakeit.Sentence()
 		ctx = context.WithValue(ctx, key2, val2)
@@ -105,7 +107,7 @@ func TestContextLogger(t *testing.T) {
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", key1, val1))
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%d", key2, val2))
 		require.NotContains(t, sink.String(), key3)
-		require.NotContains(t, sink.String(), ContextKey)
+		require.NotContains(t, sink.String(), contextKey)
 
 		message = gofakeit.Sentence()
 		ctx = context.WithValue(ctx, key3, val3)
@@ -115,6 +117,6 @@ func TestContextLogger(t *testing.T) {
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", key1, val1))
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%d", key2, val2))
 		require.NotContains(t, sink.String(), key3)
-		require.NotContains(t, sink.String(), ContextKey)
+		require.NotContains(t, sink.String(), contextKey)
 	})
 }
