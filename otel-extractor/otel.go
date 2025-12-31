@@ -16,11 +16,9 @@ func With() ctxLogger.ContextExtractor {
 			return nil
 		}
 
-		fields := make([]zap.Field, 2)
-
-		fields[0] = zap.String("trace_id", spanContext.TraceID().String())
-		fields[1] = zap.String("span_id", spanContext.SpanID().String())
-
-		return fields
+		return []zap.Field{
+			zap.String("trace_id", spanContext.TraceID().String()),
+			zap.String("span_id", spanContext.SpanID().String()),
+		}
 	}
 }

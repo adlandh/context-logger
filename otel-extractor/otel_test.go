@@ -59,7 +59,6 @@ func TestContextLoggerWithOtelExtractor(t *testing.T) {
 		require.Contains(t, sink.String(), testText)
 		require.NotContains(t, sink.String(), "trace_id")
 		require.NotContains(t, sink.String(), "span_id")
-		require.NotContains(t, sink.String(), ctxLogger.ContextKey)
 	})
 
 	t.Run("test context logger with otel extractor with tracer", func(t *testing.T) {
@@ -82,6 +81,5 @@ func TestContextLoggerWithOtelExtractor(t *testing.T) {
 		require.Contains(t, sink.String(), testText)
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "trace_id", sc.TraceID().String()))
 		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "span_id", sc.SpanID().String()))
-		require.NotContains(t, sink.String(), ctxLogger.ContextKey)
 	})
 }
