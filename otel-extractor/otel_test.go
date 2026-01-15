@@ -1,71 +1,52 @@
 package otelextractor
 
 import (
-	"bytes"
 	"context"
-	"fmt"
-	"net/url"
 	"testing"
 
 	ctxLogger "github.com/adlandh/context-logger"
-	"github.com/brianvoe/gofakeit/v7"
 	"github.com/stretchr/testify/require"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/trace/noop"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest/observer"
 )
 
-const testText = "\"text\":\"test\""
-
-type memorySink struct {
-	*bytes.Buffer
-}
-
-// Implement Close and Sync as no-ops to satisfy the interface. The Write
-// method is provided by the embedded buffer.
-
-func (s *memorySink) Close() error { return nil }
-func (s *memorySink) Sync() error  { return nil }
-
 func TestContextLoggerWithOtelExtractor(t *testing.T) {
-	sink := &memorySink{new(bytes.Buffer)}
-	err := zap.RegisterSink("memory", func(*url.URL) (zap.Sink, error) {
-		return sink, nil
-	})
-	require.NoError(t, err)
-
-	conf := zap.NewProductionConfig()
-	// Redirect all messages to the memorySink.
-	conf.OutputPaths = []string{"memory://"}
-
-	l, err := conf.Build()
-	require.NoError(t, err)
-
-	l = l.With(
+	core, observed := observer.New(zap.InfoLevel)
+	l := zap.New(core).With(
 		zap.String("text", "test"),
 	)
 
 	t.Run("test context logger with otel extractor with no tracer", func(t *testing.T) {
-		sink.Reset()
-		message := gofakeit.Sentence()
+		observed.TakeAll()
+		message := "otel-message-1"
 		ctx := context.Background()
 		spanContext := trace.SpanContextFromContext(ctx)
 		require.False(t, spanContext.IsValid())
 		logger := ctxLogger.WithContext(l, With())
 		logger.Ctx(ctx).Info(message)
-		require.Contains(t, sink.String(), message)
-		require.Contains(t, sink.String(), testText)
-		require.NotContains(t, sink.String(), "trace_id")
-		require.NotContains(t, sink.String(), "span_id")
+
+		entries := observed.TakeAll()
+		require.Len(t, entries, 1)
+		entry := entries[0]
+		fields := entry.ContextMap()
+
+		require.Equal(t, message, entry.Message)
+		require.Equal(t, "test", fields["text"])
+		_, ok := fields["trace_id"]
+		require.False(t, ok)
+		_, ok = fields["span_id"]
+		require.False(t, ok)
 	})
 
 	t.Run("test context logger with otel extractor with tracer", func(t *testing.T) {
-		sink.Reset()
-		message := gofakeit.Sentence()
-		tracerName := gofakeit.Word()
-		spanName := gofakeit.Word()
+		observed.TakeAll()
+		message := "otel-message-2"
+		tracerName := "test-tracer"
+		spanName := "test-span"
 
 		provider := noop.NewTracerProvider()
 		otel.SetTextMapPropagator(propagation.TraceContext{})
@@ -77,9 +58,15 @@ func TestContextLoggerWithOtelExtractor(t *testing.T) {
 		ctx, _ = provider.Tracer(tracerName).Start(ctx, spanName)
 		logger := ctxLogger.WithContext(l, With())
 		logger.Ctx(ctx).Info(message)
-		require.Contains(t, sink.String(), message)
-		require.Contains(t, sink.String(), testText)
-		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "trace_id", sc.TraceID().String()))
-		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "span_id", sc.SpanID().String()))
+
+		entries := observed.TakeAll()
+		require.Len(t, entries, 1)
+		entry := entries[0]
+		fields := entry.ContextMap()
+
+		require.Equal(t, message, entry.Message)
+		require.Equal(t, "test", fields["text"])
+		require.Equal(t, sc.TraceID().String(), fields["trace_id"])
+		require.Equal(t, sc.SpanID().String(), fields["span_id"])
 	})
 }

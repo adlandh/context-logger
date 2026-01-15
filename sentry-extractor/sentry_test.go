@@ -1,32 +1,17 @@
 package sentryextractor
 
 import (
-	"bytes"
 	"context"
-	"fmt"
-	"net/url"
 	"sync"
 	"testing"
 	"time"
 
 	ctxLogger "github.com/adlandh/context-logger"
-	"github.com/brianvoe/gofakeit/v7"
 	"github.com/getsentry/sentry-go"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest/observer"
 )
-
-const testText = "\"text\":\"test\""
-
-type memorySink struct {
-	*bytes.Buffer
-}
-
-// Implement Close and Sync as no-ops to satisfy the interface. The Write
-// method is provided by the embedded buffer.
-
-func (s *memorySink) Close() error { return nil }
-func (s *memorySink) Sync() error  { return nil }
 
 var _ sentry.Transport = (*transportMock)(nil)
 
@@ -51,50 +36,47 @@ func (t *transportMock) Events() []*sentry.Event {
 func (*transportMock) Close() { /* stub */ }
 
 func TestContextLogger(t *testing.T) {
-	sink := &memorySink{new(bytes.Buffer)}
-	err := zap.RegisterSink("memory", func(*url.URL) (zap.Sink, error) {
-		return sink, nil
-	})
-	require.NoError(t, err)
-
-	conf := zap.NewProductionConfig()
-	// Redirect all messages to the memorySink.
-	conf.OutputPaths = []string{"memory://"}
-
-	l, err := conf.Build()
-	require.NoError(t, err)
-
-	l = l.With(
+	core, observed := observer.New(zap.InfoLevel)
+	l := zap.New(core).With(
 		zap.String("text", "test"),
 	)
 
 	transport := &transportMock{}
 
 	t.Run("test context logger with sentry extractor with no tracer", func(t *testing.T) {
-		sink.Reset()
-		message := gofakeit.Sentence()
+		observed.TakeAll()
+		message := "sentry-message-1"
 		ctx := context.Background()
 		transaction := sentry.TransactionFromContext(ctx)
 		require.Nil(t, transaction)
 		logger := ctxLogger.WithContext(l, With())
 		logger.Ctx(ctx).Info(message)
-		require.Contains(t, sink.String(), message)
-		require.Contains(t, sink.String(), testText)
-		require.NotContains(t, sink.String(), "trace_id")
-		require.NotContains(t, sink.String(), "span_id")
-		require.NotContains(t, sink.String(), "span_status")
+
+		entries := observed.TakeAll()
+		require.Len(t, entries, 1)
+		entry := entries[0]
+		fields := entry.ContextMap()
+
+		require.Equal(t, message, entry.Message)
+		require.Equal(t, "test", fields["text"])
+		_, ok := fields["trace_id"]
+		require.False(t, ok)
+		_, ok = fields["span_id"]
+		require.False(t, ok)
+		_, ok = fields["span_status"]
+		require.False(t, ok)
 	})
 
 	t.Run("test context logger with sentry extractor with tracer", func(t *testing.T) {
-		sink.Reset()
-		message := gofakeit.Sentence()
+		observed.TakeAll()
+		message := "sentry-message-2"
 		err := sentry.Init(sentry.ClientOptions{
 			Transport:   transport,
 			Environment: "test",
 		})
 
 		require.NoError(t, err)
-		spanName := gofakeit.Word()
+		spanName := "test-span"
 
 		rootspan := sentry.StartSpan(context.Background(), spanName+"_root")
 		ctx := rootspan.Context()
@@ -106,14 +88,19 @@ func TestContextLogger(t *testing.T) {
 
 		logger := ctxLogger.WithContext(l, With())
 		logger.Ctx(ctx).Info(message)
-		require.Contains(t, sink.String(), message)
-		require.Contains(t, sink.String(), testText)
-		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "trace_id", rootspan.TraceID.String()))
-		require.NotContains(t, sink.String(), fmt.Sprintf("%q:%q", "span_id", rootspan.SpanID.String()))
-		require.NotContains(t, sink.String(), fmt.Sprintf("%q:%q", "span_op", rootspan.Op))
-		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "trace_id", span.TraceID.String()))
-		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "span_id", span.SpanID.String()))
-		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "span_status", span.Status.String()))
-		require.Contains(t, sink.String(), fmt.Sprintf("%q:%q", "span_op", span.Op))
+
+		entries := observed.TakeAll()
+		require.Len(t, entries, 1)
+		entry := entries[0]
+		fields := entry.ContextMap()
+
+		require.Equal(t, message, entry.Message)
+		require.Equal(t, "test", fields["text"])
+		require.Equal(t, rootspan.TraceID.String(), fields["trace_id"])
+		require.Equal(t, span.SpanID.String(), fields["span_id"])
+		require.Equal(t, span.Status.String(), fields["span_status"])
+		require.Equal(t, span.Op, fields["span_op"])
+		require.NotEqual(t, rootspan.SpanID.String(), fields["span_id"])
+		require.NotEqual(t, rootspan.Op, fields["span_op"])
 	})
 }
