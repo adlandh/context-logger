@@ -149,7 +149,7 @@ func TestContextLoggerWithDeadlineExtractor(t *testing.T) {
 		require.False(t, ok)
 	})
 
-	t.Run("with deadline", func(t *testing.T) {
+	t.Run("with deadline is not reached", func(t *testing.T) {
 		observed.TakeAll()
 		deadline := time.Now().Add(2 * time.Second)
 		ctx, cancel := context.WithDeadline(context.Background(), deadline)
@@ -178,4 +178,75 @@ func TestContextLoggerWithDeadlineExtractor(t *testing.T) {
 			t.Fatalf("unexpected type for context_time_left: %T", v)
 		}
 	})
+
+	t.Run("with deadline is reached", func(t *testing.T) {
+		observed.TakeAll()
+		deadline := time.Now().Add(-2 * time.Second)
+		ctx, cancel := context.WithDeadline(context.Background(), deadline)
+		defer cancel()
+
+		logger := WithContext(l, WithDeadlineExtractor())
+		logger.Ctx(ctx).Info("deadline-message-3")
+
+		entries := observed.TakeAll()
+		require.Len(t, entries, 1)
+		fields := entries[0].ContextMap()
+
+		deadlineAt, ok := fields["context_deadline_at"].(time.Time)
+		require.True(t, ok)
+		require.WithinDuration(t, deadline, deadlineAt, 50*time.Millisecond)
+
+		switch v := fields["context_time_left"].(type) {
+		case time.Duration:
+			require.Less(t, v, time.Duration(0))
+			require.LessOrEqual(t, v, -2*time.Second)
+		case int64:
+			timeLeft := time.Duration(v)
+			require.Less(t, timeLeft, time.Duration(0))
+			require.LessOrEqual(t, timeLeft, -2*time.Second)
+		default:
+			t.Fatalf("unexpected type for context_time_left: %T", v)
+		}
+
+		ctxError, ok := fields["context_error"].(string)
+		require.True(t, ok)
+		require.NotEmpty(t, ctxError)
+		require.Equal(t, "context deadline exceeded", ctxError)
+	})
+
+	t.Run("context canceled", func(t *testing.T) {
+		observed.TakeAll()
+		deadline := time.Now().Add(2 * time.Second)
+		ctx, cancel := context.WithDeadline(context.Background(), deadline)
+		cancel()
+
+		logger := WithContext(l, WithDeadlineExtractor())
+		logger.Ctx(ctx).Info("deadline-message-4")
+
+		entries := observed.TakeAll()
+		require.Len(t, entries, 1)
+		fields := entries[0].ContextMap()
+
+		deadlineAt, ok := fields["context_deadline_at"].(time.Time)
+		require.True(t, ok)
+		require.WithinDuration(t, deadline, deadlineAt, 50*time.Millisecond)
+
+		switch v := fields["context_time_left"].(type) {
+		case time.Duration:
+			require.Greater(t, v, time.Duration(0))
+			require.LessOrEqual(t, v, 2*time.Second)
+		case int64:
+			timeLeft := time.Duration(v)
+			require.Greater(t, timeLeft, time.Duration(0))
+			require.LessOrEqual(t, timeLeft, 2*time.Second)
+		default:
+			t.Fatalf("unexpected type for context_time_left: %T", v)
+		}
+
+		ctxError, ok := fields["context_error"].(string)
+		require.True(t, ok)
+		require.NotEmpty(t, ctxError)
+		require.Equal(t, "context canceled", ctxError)
+	})
+
 }
