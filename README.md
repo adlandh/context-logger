@@ -69,6 +69,7 @@ ctxLogger := ctxlog.WithContext(
 	logger,
 	ctxlog.WithValueExtractor(userIDKey),
 	ctxlog.WithValueExtractor(contextKey("request_id")),
+	ctxlog.WithDeadlineExtractor(),
 	ctxlog.WithContextCarrier("ctx"),
 )
 ```
@@ -94,9 +95,21 @@ See the [full example](./example/main.go) for a web application using Echo frame
 ### Built-in Extractors
 
 - **WithValueExtractor**: Extracts values from context using keys that implement `fmt.Stringer`
+- **WithDeadlineExtractor**: Extracts deadline metadata from context (`context_deadline_at`, `context_time_left`)
 - **WithContextCarrier**: Attaches the `context.Context` to the logger for custom cores/encoders (field is not emitted by default)
 
 Usage note: `WithContextCarrier` is useful when you have a custom zap core/encoder that knows how to pull values from the context. The carrier field is a skip-type field, so it will not appear in logs unless your core/encoder handles it explicitly.
+
+```go
+ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+defer cancel()
+
+ctxLogger := ctxlog.WithContext(logger, ctxlog.WithDeadlineExtractor())
+ctxLogger.Ctx(ctx).Info("processing request")
+// Adds:
+// - context_deadline_at (time.Time)
+// - context_time_left (time.Duration)
+```
 
 ### Additional Extractors (in separate modules)
 
