@@ -4,6 +4,7 @@ package contextlogger
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -71,5 +72,21 @@ func WithContextCarrier(fieldName string) ContextExtractor {
 				Interface: ctx,
 			},
 		}
+	}
+}
+
+func WithDeadlineExtractor() ContextExtractor {
+	return func(ctx context.Context) []zap.Field {
+		deadline, ok := ctx.Deadline()
+		if !ok {
+			return nil
+		}
+
+		dlfields := make([]zap.Field, 2)
+
+		dlfields[0] = zap.Time("context_deadline_at", deadline)
+		dlfields[1] = zap.Duration("context_time_left", time.Until(deadline))
+
+		return dlfields
 	}
 }

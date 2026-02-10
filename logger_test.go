@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -124,5 +125,57 @@ func TestContextLogger(t *testing.T) {
 		require.False(t, ok)
 		_, ok = fields[contextKey]
 		require.False(t, ok)
+	})
+}
+
+func TestContextLoggerWithDeadlineExtractor(t *testing.T) {
+	core, observed := observer.New(zap.InfoLevel)
+	l := zap.New(core).With(
+		zap.String("text", "test"),
+	)
+
+	t.Run("without deadline", func(t *testing.T) {
+		observed.TakeAll()
+		logger := WithContext(l, WithDeadlineExtractor())
+		logger.Ctx(context.Background()).Info("deadline-message-1")
+
+		entries := observed.TakeAll()
+		require.Len(t, entries, 1)
+		fields := entries[0].ContextMap()
+
+		_, ok := fields["context_deadline_at"]
+		require.False(t, ok)
+		_, ok = fields["context_time_left"]
+		require.False(t, ok)
+	})
+
+	t.Run("with deadline", func(t *testing.T) {
+		observed.TakeAll()
+		deadline := time.Now().Add(2 * time.Second)
+		ctx, cancel := context.WithDeadline(context.Background(), deadline)
+		defer cancel()
+
+		logger := WithContext(l, WithDeadlineExtractor())
+		logger.Ctx(ctx).Info("deadline-message-2")
+
+		entries := observed.TakeAll()
+		require.Len(t, entries, 1)
+		fields := entries[0].ContextMap()
+
+		deadlineAt, ok := fields["context_deadline_at"].(time.Time)
+		require.True(t, ok)
+		require.WithinDuration(t, deadline, deadlineAt, 50*time.Millisecond)
+
+		switch v := fields["context_time_left"].(type) {
+		case time.Duration:
+			require.Greater(t, v, time.Duration(0))
+			require.LessOrEqual(t, v, 2*time.Second)
+		case int64:
+			timeLeft := time.Duration(v)
+			require.Greater(t, timeLeft, time.Duration(0))
+			require.LessOrEqual(t, timeLeft, 2*time.Second)
+		default:
+			t.Fatalf("unexpected type for context_time_left: %T", v)
+		}
 	})
 }
