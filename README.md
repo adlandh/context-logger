@@ -95,7 +95,7 @@ See the [full example](./example/main.go) for a web application using Echo frame
 ### Built-in Extractors
 
 - **WithValueExtractor**: Extracts values from context using keys that implement `fmt.Stringer`
-- **WithDeadlineExtractor**: Extracts deadline metadata from context (`context_deadline_at`, `context_time_left`)
+- **WithDeadlineExtractor**: Extracts deadline metadata from context (`context_deadline_at`, `context_time_left`) and adds `context_error` when the context is done
 - **WithContextCarrier**: Attaches the `context.Context` to the logger for custom cores/encoders (field is not emitted by default)
 
 Usage note: `WithContextCarrier` is useful when you have a custom zap core/encoder that knows how to pull values from the context. The carrier field is a skip-type field, so it will not appear in logs unless your core/encoder handles it explicitly.
@@ -109,6 +109,7 @@ ctxLogger.Ctx(ctx).Info("processing request")
 // Adds:
 // - context_deadline_at (time.Time)
 // - context_time_left (time.Duration)
+// - context_error (string, only when ctx.Err() is non-nil)
 ```
 
 ### Additional Extractors (in separate modules)
