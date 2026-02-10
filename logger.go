@@ -82,10 +82,13 @@ func WithDeadlineExtractor() ContextExtractor {
 			return nil
 		}
 
-		dlfields := make([]zap.Field, 2)
+		dlfields := make([]zap.Field, 0, 3)
 
-		dlfields[0] = zap.Time("context_deadline_at", deadline)
-		dlfields[1] = zap.Duration("context_time_left", time.Until(deadline))
+		dlfields = append(dlfields, zap.Time("context_deadline_at", deadline),
+			zap.Duration("context_time_left", time.Until(deadline)))
+		if ctx.Err() != nil {
+			dlfields = append(dlfields, zap.String("context_error", ctx.Err().Error()))
+		}
 
 		return dlfields
 	}
