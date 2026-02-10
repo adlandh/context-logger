@@ -3,7 +3,7 @@ module github.com/adlandh/context-logger/sentry-extractor
 go 1.25
 
 require (
-	github.com/adlandh/context-logger v1.5.0
+	github.com/adlandh/context-logger v1.5.1
 	github.com/getsentry/sentry-go v0.42.0
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.27.1
