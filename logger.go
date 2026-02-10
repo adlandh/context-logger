@@ -86,6 +86,7 @@ func WithDeadlineExtractor() ContextExtractor {
 
 		dlfields[0] = zap.Time("context_deadline_at", deadline)
 		dlfields[1] = zap.Duration("context_time_left", time.Until(deadline))
+
 		return dlfields
 	}
 }
