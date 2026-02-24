@@ -49,9 +49,21 @@ func (c *ContextLogger) Ctx(ctx context.Context) *zap.Logger {
 }
 
 func (c *ContextLogger) With(extractors ...ContextExtractor) *ContextLogger {
+	if len(extractors) == 0 {
+		return c
+	}
+
+	if len(c.extractors) == 0 {
+		return New(c.logger, extractors...)
+	}
+
+	combined := make([]ContextExtractor, len(c.extractors)+len(extractors))
+	copy(combined, c.extractors)
+	copy(combined[len(c.extractors):], extractors)
+
 	return &ContextLogger{
 		logger:     c.logger,
-		extractors: append(c.extractors, extractors...),
+		extractors: combined,
 	}
 }
 

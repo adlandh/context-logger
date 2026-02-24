@@ -29,7 +29,7 @@ type contextKeyStruct struct {
 	V float32
 }
 
-func (k contextKeyStruct) String() string {
+func (contextKeyStruct) String() string {
 	return "contextKeyStruct"
 }
 
@@ -40,9 +40,9 @@ func newTestLogger() (*zap.Logger, *observer.ObservedLogs) {
 
 func logAndAssert(
 	t *testing.T,
+	ctx context.Context,
 	observed *observer.ObservedLogs,
 	logger *ContextLogger,
-	ctx context.Context,
 	msg string,
 ) map[string]interface{} {
 	t.Helper()
@@ -59,7 +59,7 @@ func TestContextLogger_NoExtractors(t *testing.T) {
 	t.Run("logs without context values", func(t *testing.T) {
 		observed.TakeAll()
 		cl := WithContext(logger)
-		fields := logAndAssert(t, observed, cl, context.Background(), "test-message")
+		fields := logAndAssert(t, context.Background(), observed, cl, "test-message")
 
 		require.Equal(t, "test", fields["text"])
 		_, ok := fields["context_key"]
@@ -69,7 +69,7 @@ func TestContextLogger_NoExtractors(t *testing.T) {
 	t.Run("handles nil context", func(t *testing.T) {
 		observed.TakeAll()
 		cl := WithContext(logger)
-		fields := logAndAssert(t, observed, cl, nil, "nil-context-message")
+		fields := logAndAssert(t, nil, observed, cl, "nil-context-message")
 
 		require.Equal(t, "test", fields["text"])
 	})
@@ -79,7 +79,7 @@ func TestContextLogger_NoExtractors(t *testing.T) {
 		cl := WithContext(logger)
 		key := contextKeyString("test-key")
 		ctx := context.WithValue(context.Background(), key, "test-value")
-		fields := logAndAssert(t, observed, cl, ctx, "ignored-message")
+		fields := logAndAssert(t, ctx, observed, cl, "ignored-message")
 
 		_, ok := fields[key.String()]
 		require.False(t, ok)
@@ -95,7 +95,7 @@ func TestContextLogger_WithValueExtractor(t *testing.T) {
 		val := "user-123"
 		cl := WithContext(logger, WithValueExtractor(key))
 		ctx := context.WithValue(context.Background(), key, val)
-		fields := logAndAssert(t, observed, cl, ctx, "user-log")
+		fields := logAndAssert(t, ctx, observed, cl, "user-log")
 
 		require.Equal(t, val, fields[key.String()])
 	})
@@ -113,7 +113,7 @@ func TestContextLogger_WithValueExtractor(t *testing.T) {
 		ctx := context.WithValue(context.Background(), key1, val1)
 		ctx = context.WithValue(ctx, key2, val2)
 		ctx = context.WithValue(ctx, key3, val3)
-		fields := logAndAssert(t, observed, cl, ctx, "multi-key-log")
+		fields := logAndAssert(t, ctx, observed, cl, "multi-key-log")
 
 		require.Equal(t, val1, fields[key1.String()])
 		require.Equal(t, val2, fields[key2.String()])
@@ -124,7 +124,7 @@ func TestContextLogger_WithValueExtractor(t *testing.T) {
 		observed.TakeAll()
 		key := contextKeyString("missing")
 		cl := WithContext(logger, WithValueExtractor(key))
-		fields := logAndAssert(t, observed, cl, context.Background(), "missing-key")
+		fields := logAndAssert(t, context.Background(), observed, cl, "missing-key")
 
 		_, ok := fields[key.String()]
 		require.False(t, ok)
@@ -135,7 +135,7 @@ func TestContextLogger_WithValueExtractor(t *testing.T) {
 		key := contextKeyString("nil-value")
 		cl := WithContext(logger, WithValueExtractor(key))
 		ctx := context.WithValue(context.Background(), key, nil)
-		fields := logAndAssert(t, observed, cl, ctx, "nil-value-log")
+		fields := logAndAssert(t, ctx, observed, cl, "nil-value-log")
 
 		_, ok := fields[key.String()]
 		require.False(t, ok)
@@ -144,7 +144,7 @@ func TestContextLogger_WithValueExtractor(t *testing.T) {
 	t.Run("handles empty key slice", func(t *testing.T) {
 		observed.TakeAll()
 		cl := WithContext(logger, WithValueExtractor[contextKeyString]())
-		fields := logAndAssert(t, observed, cl, context.Background(), "empty-keys")
+		fields := logAndAssert(t, context.Background(), observed, cl, "empty-keys")
 
 		require.Equal(t, "test", fields["text"])
 	})
@@ -154,7 +154,7 @@ func TestContextLogger_WithValueExtractor(t *testing.T) {
 		key := contextKeyString("trace_id")
 		cl := WithContext(logger, WithValueExtractor(key))
 		ctx := context.WithValue(context.Background(), key, "abc-123")
-		fields := logAndAssert(t, observed, cl, ctx, "preserved")
+		fields := logAndAssert(t, ctx, observed, cl, "preserved")
 
 		require.Equal(t, "test", fields["text"])
 		require.Equal(t, "abc-123", fields["trace_id"])
@@ -178,7 +178,7 @@ func TestContextLogger_WithContextCarrier(t *testing.T) {
 
 	t.Run("skips empty field name", func(t *testing.T) {
 		cl := WithContext(logger, WithContextCarrier(""))
-		fields := logAndAssert(t, observed, cl, context.Background(), "empty-name")
+		fields := logAndAssert(t, context.Background(), observed, cl, "empty-name")
 
 		_, ok := fields[""]
 		require.False(t, ok)
@@ -205,7 +205,7 @@ func TestContextLogger_WithDeadlineExtractor(t *testing.T) {
 	t.Run("no deadline returns no fields", func(t *testing.T) {
 		observed.TakeAll()
 		cl := WithContext(logger, WithDeadlineExtractor())
-		fields := logAndAssert(t, observed, cl, context.Background(), "no-deadline")
+		fields := logAndAssert(t, context.Background(), observed, cl, "no-deadline")
 
 		_, ok := fields["context_deadline_at"]
 		require.False(t, ok)
@@ -218,7 +218,7 @@ func TestContextLogger_WithDeadlineExtractor(t *testing.T) {
 		defer cancel()
 
 		cl := WithContext(logger, WithDeadlineExtractor())
-		fields := logAndAssert(t, observed, cl, ctx, "future-deadline")
+		fields := logAndAssert(t, ctx, observed, cl, "future-deadline")
 
 		deadlineAt, ok := fields["context_deadline_at"].(time.Time)
 		require.True(t, ok)
@@ -236,7 +236,7 @@ func TestContextLogger_WithDeadlineExtractor(t *testing.T) {
 		defer cancel()
 
 		cl := WithContext(logger, WithDeadlineExtractor())
-		fields := logAndAssert(t, observed, cl, ctx, "past-deadline")
+		fields := logAndAssert(t, ctx, observed, cl, "past-deadline")
 
 		deadlineAt, ok := fields["context_deadline_at"].(time.Time)
 		require.True(t, ok)
@@ -255,7 +255,7 @@ func TestContextLogger_WithDeadlineExtractor(t *testing.T) {
 		cancel()
 
 		cl := WithContext(logger, WithDeadlineExtractor())
-		fields := logAndAssert(t, observed, cl, ctx, "canceled")
+		fields := logAndAssert(t, ctx, observed, cl, "canceled")
 
 		deadlineAt, ok := fields["context_deadline_at"].(time.Time)
 		require.True(t, ok)
@@ -336,7 +336,7 @@ func TestContextLogger_New(t *testing.T) {
 		key := contextKeyString("user_id")
 		cl := New(logger, WithValueExtractor(key))
 		ctx := context.WithValue(context.Background(), key, "user-123")
-		fields := logAndAssert(t, observed, cl, ctx, "new-test")
+		fields := logAndAssert(t, ctx, observed, cl, "new-test")
 
 		require.Equal(t, "user-123", fields[key.String()])
 	})
@@ -344,7 +344,7 @@ func TestContextLogger_New(t *testing.T) {
 	t.Run("creates logger without extractors", func(t *testing.T) {
 		observed.TakeAll()
 		cl := New(logger)
-		fields := logAndAssert(t, observed, cl, context.Background(), "no-extractors")
+		fields := logAndAssert(t, context.Background(), observed, cl, "no-extractors")
 
 		require.Equal(t, "test", fields["text"])
 	})
@@ -364,7 +364,7 @@ func TestContextLogger_WithMethod(t *testing.T) {
 		ctx := context.WithValue(context.Background(), key1, "user-456")
 		ctx = context.WithValue(ctx, key2, "req-789")
 
-		fields := logAndAssert(t, observed, cl, ctx, "with-test")
+		fields := logAndAssert(t, ctx, observed, cl, "with-test")
 
 		require.Equal(t, "user-456", fields[key1.String()])
 		require.Equal(t, "req-789", fields[key2.String()])
@@ -378,7 +378,7 @@ func TestContextLogger_WithMethod(t *testing.T) {
 		cl.With(WithValueExtractor(key))
 
 		ctx := context.WithValue(context.Background(), key, "value")
-		fields := logAndAssert(t, observed, cl, ctx, "original-unchanged")
+		fields := logAndAssert(t, ctx, observed, cl, "original-unchanged")
 
 		_, ok := fields[key.String()]
 		require.False(t, ok)
