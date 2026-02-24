@@ -46,8 +46,10 @@ func main() {
 	// Create a Zap logger
 	logger, _ := zap.NewProduction()
 
-	// Create a context logger with a value extractor
-	ctxLogger := ctxlog.WithContext(logger, ctxlog.WithValueExtractor(userIDKey))
+	// Create a context logger with a value extractor (using New or WithContext)
+	ctxLogger := ctxlog.New(logger, ctxlog.WithValueExtractor(userIDKey))
+	// Or equivalently:
+	// ctxLogger := ctxlog.WithContext(logger, ctxlog.WithValueExtractor(userIDKey))
 
 	// Create a context with a value
 	ctx := context.WithValue(context.Background(), userIDKey, "user-123")
@@ -157,8 +159,11 @@ func MyCustomExtractor() ctxlog.ContextExtractor {
 
 ## API Overview
 
+- `New(logger, extractors...)` creates a new ContextLogger (alias for `WithContext`)
 - `WithContext(logger, extractors...)` wraps a Zap logger and returns a context-aware facade
 - `Ctx(ctx)` returns a logger bound to that context for the next call
+- `With(extractors...)` returns a new ContextLogger with additional extractors (does not modify original)
+- `Logger()` returns the underlying Zap logger
 - `ContextExtractor` is `func(context.Context) []zap.Field`
 
 ## Testing
