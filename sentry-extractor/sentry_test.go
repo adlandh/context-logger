@@ -20,87 +20,200 @@ type transportMock struct {
 	events []*sentry.Event
 }
 
-func (*transportMock) Configure(_ sentry.ClientOptions) { /* stub */ }
+func (*transportMock) Configure(_ sentry.ClientOptions) {}
+
 func (t *transportMock) SendEvent(event *sentry.Event) {
+	t.Lock()
+	defer t.Unlock()
 	t.events = append(t.events, event)
 }
+
 func (*transportMock) Flush(_ time.Duration) bool {
 	return true
 }
-func (t *transportMock) FlushWithContext(ctx context.Context) bool {
+
+func (t *transportMock) FlushWithContext(_ context.Context) bool {
 	return t.Flush(0)
 }
+
 func (t *transportMock) Events() []*sentry.Event {
+	t.Lock()
+	defer t.Unlock()
 	return t.events
 }
-func (*transportMock) Close() { /* stub */ }
 
-func TestContextLogger(t *testing.T) {
+func (*transportMock) Close() {}
+
+type testContextKey string
+
+func (k testContextKey) String() string {
+	return string(k)
+}
+
+func newTestLogger() (*zap.Logger, *observer.ObservedLogs) {
 	core, observed := observer.New(zap.InfoLevel)
-	l := zap.New(core).With(
-		zap.String("text", "test"),
-	)
+	return zap.New(core).With(zap.String("text", "test")), observed
+}
 
+func logAndAssert(
+	t *testing.T,
+	ctx context.Context,
+	observed *observer.ObservedLogs,
+	logger *ctxLogger.ContextLogger,
+	msg string,
+) map[string]interface{} {
+	t.Helper()
+	logger.Ctx(ctx).Info(msg)
+	entries := observed.TakeAll()
+	require.Len(t, entries, 1)
+	require.Equal(t, msg, entries[0].Message)
+	return entries[0].ContextMap()
+}
+
+func setUpSentry(t *testing.T) *transportMock {
 	transport := &transportMock{}
+	err := sentry.Init(sentry.ClientOptions{
+		Transport:   transport,
+		Environment: "test",
+	})
+	require.NoError(t, err)
+	t.Cleanup(func() { sentry.Flush(time.Second) })
+	return transport
+}
 
-	t.Run("test context logger with sentry extractor with no tracer", func(t *testing.T) {
+func TestSentryExtractor_NoSpan(t *testing.T) {
+	logger, observed := newTestLogger()
+	cl := ctxLogger.WithContext(logger, With())
+
+	t.Run("background context has no span", func(t *testing.T) {
 		observed.TakeAll()
-		message := "sentry-message-1"
-		ctx := context.Background()
-		transaction := sentry.TransactionFromContext(ctx)
-		require.Nil(t, transaction)
-		logger := ctxLogger.WithContext(l, With())
-		logger.Ctx(ctx).Info(message)
+		fields := logAndAssert(t, context.Background(), observed, cl, "no-span")
 
-		entries := observed.TakeAll()
-		require.Len(t, entries, 1)
-		entry := entries[0]
-		fields := entry.ContextMap()
-
-		require.Equal(t, message, entry.Message)
 		require.Equal(t, "test", fields["text"])
-		_, ok := fields["trace_id"]
+		_, ok := fields[FieldTraceID]
 		require.False(t, ok)
-		_, ok = fields["span_id"]
+		_, ok = fields[FieldSpanID]
 		require.False(t, ok)
-		_, ok = fields["span_status"]
+		_, ok = fields[FieldSpanStatus]
+		require.False(t, ok)
+		_, ok = fields[FieldSpanOp]
 		require.False(t, ok)
 	})
 
-	t.Run("test context logger with sentry extractor with tracer", func(t *testing.T) {
+	t.Run("empty hub has no span", func(t *testing.T) {
 		observed.TakeAll()
-		message := "sentry-message-2"
-		err := sentry.Init(sentry.ClientOptions{
-			Transport:   transport,
-			Environment: "test",
-		})
+		require.Nil(t, sentry.TransactionFromContext(context.Background()))
+		fields := logAndAssert(t, context.Background(), observed, cl, "no-transaction")
 
-		require.NoError(t, err)
-		spanName := "test-span"
+		require.Equal(t, "test", fields["text"])
+		_, ok := fields[FieldTraceID]
+		require.False(t, ok)
+	})
+}
 
-		rootspan := sentry.StartSpan(context.Background(), spanName+"_root")
-		ctx := rootspan.Context()
-		defer rootspan.Finish()
+func TestSentryExtractor_WithSpan(t *testing.T) {
+	_ = setUpSentry(t)
+	logger, observed := newTestLogger()
+	cl := ctxLogger.WithContext(logger, With())
 
-		span := sentry.StartSpan(ctx, spanName)
-		ctx = span.Context()
+	t.Run("extracts span info from root span", func(t *testing.T) {
+		observed.TakeAll()
+		rootSpan := sentry.StartSpan(context.Background(), "root-operation")
+		defer rootSpan.Finish()
+
+		fields := logAndAssert(t, rootSpan.Context(), observed, cl, "root-span")
+
+		require.Equal(t, rootSpan.TraceID.String(), fields[FieldTraceID])
+		require.Equal(t, rootSpan.SpanID.String(), fields[FieldSpanID])
+		require.Equal(t, rootSpan.Status.String(), fields[FieldSpanStatus])
+		require.Equal(t, rootSpan.Op, fields[FieldSpanOp])
+	})
+
+	t.Run("extracts span info from child span", func(t *testing.T) {
+		observed.TakeAll()
+		rootSpan := sentry.StartSpan(context.Background(), "root-span")
+		defer rootSpan.Finish()
+
+		childSpan := sentry.StartSpan(rootSpan.Context(), "child-operation")
+		defer childSpan.Finish()
+
+		fields := logAndAssert(t, childSpan.Context(), observed, cl, "child-span")
+
+		require.Equal(t, rootSpan.TraceID.String(), fields[FieldTraceID])
+		require.Equal(t, childSpan.SpanID.String(), fields[FieldSpanID])
+		require.Equal(t, childSpan.Status.String(), fields[FieldSpanStatus])
+		require.Equal(t, childSpan.Op, fields[FieldSpanOp])
+		require.NotEqual(t, rootSpan.SpanID.String(), fields[FieldSpanID])
+	})
+
+	t.Run("preserves logger fields", func(t *testing.T) {
+		observed.TakeAll()
+		span := sentry.StartSpan(context.Background(), "test-span")
 		defer span.Finish()
 
-		logger := ctxLogger.WithContext(l, With())
-		logger.Ctx(ctx).Info(message)
+		fields := logAndAssert(t, span.Context(), observed, cl, "preserve-fields")
 
-		entries := observed.TakeAll()
-		require.Len(t, entries, 1)
-		entry := entries[0]
-		fields := entry.ContextMap()
-
-		require.Equal(t, message, entry.Message)
 		require.Equal(t, "test", fields["text"])
-		require.Equal(t, rootspan.TraceID.String(), fields["trace_id"])
-		require.Equal(t, span.SpanID.String(), fields["span_id"])
-		require.Equal(t, span.Status.String(), fields["span_status"])
-		require.Equal(t, span.Op, fields["span_op"])
-		require.NotEqual(t, rootspan.SpanID.String(), fields["span_id"])
-		require.NotEqual(t, rootspan.Op, fields["span_op"])
+		require.NotEmpty(t, fields[FieldTraceID])
+		require.NotEmpty(t, fields[FieldSpanID])
+	})
+}
+
+func TestSentryExtractor_MultipleSpans(t *testing.T) {
+	_ = setUpSentry(t)
+	logger, observed := newTestLogger()
+	cl := ctxLogger.WithContext(logger, With())
+
+	t.Run("nested spans have different span IDs", func(t *testing.T) {
+		observed.TakeAll()
+		root := sentry.StartSpan(context.Background(), "root")
+		defer root.Finish()
+
+		child1 := sentry.StartSpan(root.Context(), "child1")
+		fields1 := logAndAssert(t, child1.Context(), observed, cl, "child1-log")
+		child1.Finish()
+
+		child2 := sentry.StartSpan(root.Context(), "child2")
+		fields2 := logAndAssert(t, child2.Context(), observed, cl, "child2-log")
+		child2.Finish()
+
+		require.Equal(t, fields1["trace_id"], fields2["trace_id"])
+		require.NotEqual(t, fields1["span_id"], fields2["span_id"])
+	})
+}
+
+func TestSentryExtractor_CombinedWithOtherExtractors(t *testing.T) {
+	_ = setUpSentry(t)
+	logger, observed := newTestLogger()
+	cl := ctxLogger.WithContext(logger, With(), ctxLogger.WithValueExtractor[testContextKey](testContextKey("request_id")))
+
+	t.Run("works with value extractor", func(t *testing.T) {
+		observed.TakeAll()
+		span := sentry.StartSpan(context.Background(), "sentry-span")
+		defer span.Finish()
+
+		ctx := context.WithValue(span.Context(), testContextKey("request_id"), "req-456")
+		fields := logAndAssert(t, ctx, observed, cl, "combined")
+
+		require.Equal(t, "req-456", fields["request_id"])
+		require.Equal(t, span.TraceID.String(), fields[FieldTraceID])
+		require.Equal(t, span.SpanID.String(), fields[FieldSpanID])
+	})
+}
+
+func TestSentryExtractor_SpanStatus(t *testing.T) {
+	_ = setUpSentry(t)
+	logger, observed := newTestLogger()
+	cl := ctxLogger.WithContext(logger, With())
+
+	t.Run("status can be set to error", func(t *testing.T) {
+		observed.TakeAll()
+		span := sentry.StartSpan(context.Background(), "error-span")
+		span.Status = sentry.SpanStatusInternalError
+		defer span.Finish()
+
+		fields := logAndAssert(t, span.Context(), observed, cl, "error-check")
+
+		require.Equal(t, sentry.SpanStatusInternalError.String(), fields[FieldSpanStatus])
 	})
 }
