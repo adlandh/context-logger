@@ -1,4 +1,4 @@
-// Package otelextractor is Opentelemetry Info Extractor
+// Package otelextractor provides a context extractor for OpenTelemetry span information.
 package otelextractor
 
 import (
@@ -9,6 +9,11 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	FieldTraceID = "trace_id"
+	FieldSpanID  = "span_id"
+)
+
 func With() ctxLogger.ContextExtractor {
 	return func(ctx context.Context) []zap.Field {
 		spanContext := trace.SpanContextFromContext(ctx)
@@ -17,8 +22,8 @@ func With() ctxLogger.ContextExtractor {
 		}
 
 		return []zap.Field{
-			zap.String("trace_id", spanContext.TraceID().String()),
-			zap.String("span_id", spanContext.SpanID().String()),
+			zap.String(FieldTraceID, spanContext.TraceID().String()),
+			zap.String(FieldSpanID, spanContext.SpanID().String()),
 		}
 	}
 }
