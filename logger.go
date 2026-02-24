@@ -12,19 +12,29 @@ import (
 
 type ContextExtractor func(ctx context.Context) []zap.Field
 
+const (
+	FieldContextDeadlineAt = "context_deadline_at"
+	FieldContextTimeLeft   = "context_time_left"
+	FieldContextError      = "context_error"
+)
+
 type ContextLogger struct {
 	logger     *zap.Logger
 	extractors []ContextExtractor
 }
 
-func WithContext(logger *zap.Logger, extractors ...ContextExtractor) *ContextLogger {
+func New(logger *zap.Logger, extractors ...ContextExtractor) *ContextLogger {
 	return &ContextLogger{
 		logger:     logger,
 		extractors: extractors,
 	}
 }
 
-func (c ContextLogger) Ctx(ctx context.Context) *zap.Logger {
+func WithContext(logger *zap.Logger, extractors ...ContextExtractor) *ContextLogger {
+	return New(logger, extractors...)
+}
+
+func (c *ContextLogger) Ctx(ctx context.Context) *zap.Logger {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -36,6 +46,17 @@ func (c ContextLogger) Ctx(ctx context.Context) *zap.Logger {
 	}
 
 	return c.logger.With(additionalFields...)
+}
+
+func (c *ContextLogger) With(extractors ...ContextExtractor) *ContextLogger {
+	return &ContextLogger{
+		logger:     c.logger,
+		extractors: append(c.extractors, extractors...),
+	}
+}
+
+func (c *ContextLogger) Logger() *zap.Logger {
+	return c.logger
 }
 
 func WithValueExtractor[T interface {
@@ -82,14 +103,17 @@ func WithDeadlineExtractor() ContextExtractor {
 			return nil
 		}
 
-		dlfields := make([]zap.Field, 0, 3)
+		fields := make([]zap.Field, 0, 3)
 
-		dlfields = append(dlfields, zap.Time("context_deadline_at", deadline),
-			zap.Duration("context_time_left", time.Until(deadline)))
+		fields = append(fields,
+			zap.Time(FieldContextDeadlineAt, deadline),
+			zap.Duration(FieldContextTimeLeft, time.Until(deadline)),
+		)
+
 		if ctx.Err() != nil {
-			dlfields = append(dlfields, zap.String("context_error", ctx.Err().Error()))
+			fields = append(fields, zap.String(FieldContextError, ctx.Err().Error()))
 		}
 
-		return dlfields
+		return fields
 	}
 }
