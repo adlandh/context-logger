@@ -23,13 +23,19 @@ type ContextLogger struct {
 	extractors []ContextExtractor
 }
 
+// New creates a ContextLogger and falls back to a no-op logger when logger is nil.
 func New(logger *zap.Logger, extractors ...ContextExtractor) *ContextLogger {
+	if logger == nil {
+		logger = zap.NewNop()
+	}
+
 	return &ContextLogger{
 		logger:     logger,
 		extractors: extractors,
 	}
 }
 
+// WithContext creates a ContextLogger and falls back to a no-op logger when logger is nil.
 func WithContext(logger *zap.Logger, extractors ...ContextExtractor) *ContextLogger {
 	return New(logger, extractors...)
 }
