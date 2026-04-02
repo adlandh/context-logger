@@ -348,6 +348,16 @@ func TestContextLogger_New(t *testing.T) {
 
 		require.Equal(t, "test", fields["text"])
 	})
+
+	t.Run("uses nop logger when logger is nil", func(t *testing.T) {
+		cl := New(nil, WithValueExtractor(contextKeyString("key")))
+
+		require.NotNil(t, cl)
+		require.NotNil(t, cl.Logger())
+		require.NotPanics(t, func() {
+			cl.Ctx(context.Background()).Info("nil-logger")
+		})
+	})
 }
 
 func TestContextLogger_WithMethod(t *testing.T) {
