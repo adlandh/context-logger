@@ -84,6 +84,14 @@ func TestContextLogger_NoExtractors(t *testing.T) {
 		_, ok := fields[key.String()]
 		require.False(t, ok)
 	})
+
+	t.Run("skips nil extractor", func(t *testing.T) {
+		observed.TakeAll()
+		cl := WithContext(logger, nil)
+		fields := logAndAssert(t, context.Background(), observed, cl, "nil-extractor")
+
+		require.Equal(t, "test", fields["text"])
+	})
 }
 
 func TestContextLogger_WithValueExtractor(t *testing.T) {
@@ -357,6 +365,20 @@ func TestContextLogger_New(t *testing.T) {
 		require.NotPanics(t, func() {
 			cl.Ctx(context.Background()).Info("nil-logger")
 		})
+	})
+
+	t.Run("copies caller extractor slice", func(t *testing.T) {
+		observed.TakeAll()
+		key := contextKeyString("user_id")
+		extractors := []ContextExtractor{WithValueExtractor(key)}
+
+		cl := New(logger, extractors...)
+		extractors[0] = nil
+
+		ctx := context.WithValue(context.Background(), key, "user-123")
+		fields := logAndAssert(t, ctx, observed, cl, "copied-extractors")
+
+		require.Equal(t, "user-123", fields[key.String()])
 	})
 }
 

@@ -29,9 +29,11 @@ func New(logger *zap.Logger, extractors ...ContextExtractor) *ContextLogger {
 		logger = zap.NewNop()
 	}
 
+	copiedExtractors := append([]ContextExtractor(nil), extractors...)
+
 	return &ContextLogger{
 		logger:     logger,
-		extractors: extractors,
+		extractors: copiedExtractors,
 	}
 }
 
@@ -48,6 +50,10 @@ func (c *ContextLogger) Ctx(ctx context.Context) *zap.Logger {
 	additionalFields := make([]zap.Field, 0, len(c.extractors))
 
 	for _, f := range c.extractors {
+		if f == nil {
+			continue
+		}
+
 		additionalFields = append(additionalFields, f(ctx)...)
 	}
 
