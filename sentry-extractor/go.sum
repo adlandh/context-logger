@@ -1,5 +1,5 @@
-github.com/adlandh/context-logger v1.6.1 h1:L1sT2TesaSlfR5b4ZSbFOYF/j7C0QSN8vbL/bWPddHk=
-github.com/adlandh/context-logger v1.6.1/go.mod h1:VMUbw9h9FshwhH243A58HyGKiv//tvw3fwgdjQLvYLI=
+github.com/adlandh/context-logger v1.6.2 h1:TK/wbYkqd+oTobaGdnh58kHjl8TpAc8XVf+wNkQWU/A=
+github.com/adlandh/context-logger v1.6.2/go.mod h1:VMUbw9h9FshwhH243A58HyGKiv//tvw3fwgdjQLvYLI=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/getsentry/sentry-go v0.44.1 h1:/cPtrA5qB7uMRrhgSn9TYtcEF36auGP3Y6+ThvD/yaI=
