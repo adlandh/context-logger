@@ -1,5 +1,7 @@
 github.com/adlandh/context-logger v1.6.2 h1:TK/wbYkqd+oTobaGdnh58kHjl8TpAc8XVf+wNkQWU/A=
 github.com/adlandh/context-logger v1.6.2/go.mod h1:VMUbw9h9FshwhH243A58HyGKiv//tvw3fwgdjQLvYLI=
+github.com/adlandh/context-logger v1.6.3 h1:cNiu9hhmv/3+l4e1F03Qv/WMFV0fA747HZjMHV1ZhwU=
+github.com/adlandh/context-logger v1.6.3/go.mod h1:X6Ot3ksGjoPhMTVZe7nWZMjRR7F0YF5GmoAYOHjcPNI=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
