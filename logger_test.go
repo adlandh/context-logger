@@ -3,6 +3,7 @@ package contextlogger
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -415,6 +416,140 @@ func TestContextLogger_WithMethod(t *testing.T) {
 		_, ok := fields[key.String()]
 		require.False(t, ok)
 	})
+}
+
+func TestContextLogger_CtxIsSideEffectFree(t *testing.T) {
+	logger, observed := newTestLogger()
+
+	key1 := contextKeyString("user_id")
+	key2 := contextKeyString("request_id")
+
+	cl := WithContext(logger, WithValueExtractor(key1), WithValueExtractor(key2), WithDeadlineExtractor())
+
+	deadline := time.Now().Add(time.Hour)
+	ctx, cancel := context.WithDeadline(context.Background(), deadline)
+	defer cancel()
+	ctx = context.WithValue(ctx, key1, "user-1")
+	ctx = context.WithValue(ctx, key2, "req-1")
+
+	// Snapshot extractor slice header before repeated calls.
+	extractorsBefore := cl.extractors
+	lenBefore := len(extractorsBefore)
+	baseLogger := cl.Logger()
+
+	for range 50 {
+		observed.TakeAll()
+		cl.Ctx(ctx).Info("repeat")
+		entries := observed.TakeAll()
+		require.Len(t, entries, 1)
+		fields := entries[0].ContextMap()
+		require.Equal(t, "user-1", fields[key1.String()])
+		require.Equal(t, "req-1", fields[key2.String()])
+		require.NotNil(t, fields["context_deadline_at"])
+	}
+
+	// Receiver unchanged: same underlying logger and same extractor slice header.
+	require.Same(t, baseLogger, cl.Logger())
+	require.Equal(t, lenBefore, len(cl.extractors))
+	require.Equal(t, fmt.Sprintf("%p", extractorsBefore), fmt.Sprintf("%p", cl.extractors))
+}
+
+func TestContextLogger_CtxConcurrent(t *testing.T) {
+	logger, _ := newTestLogger()
+
+	key1 := contextKeyString("user_id")
+	key2 := contextKeyString("request_id")
+
+	cl := WithContext(logger, WithValueExtractor(key1), WithValueExtractor(key2), WithDeadlineExtractor())
+
+	deadline := time.Now().Add(time.Hour)
+	ctx, cancel := context.WithDeadline(context.Background(), deadline)
+	defer cancel()
+	ctx = context.WithValue(ctx, key1, "user-x")
+	ctx = context.WithValue(ctx, key2, "req-x")
+
+	const goroutines = 32
+	const iterations = 200
+
+	var wg sync.WaitGroup
+	start := make(chan struct{})
+
+	for range goroutines {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-start
+			for range iterations {
+				l := cl.Ctx(ctx)
+				require.NotNil(t, l)
+				// Also exercise With() which constructs a new combined slice.
+				_ = cl.With(WithValueExtractor(key1))
+			}
+		}()
+	}
+
+	close(start)
+	wg.Wait()
+}
+
+func TestContextLogger_WithMethodCombinedNonMutation(t *testing.T) {
+	logger, observed := newTestLogger()
+
+	key1 := contextKeyString("user_id")
+	key2 := contextKeyString("request_id")
+
+	parent := WithContext(logger, WithValueExtractor(key1))
+	parentLenBefore := len(parent.extractors)
+	parentFirst := parent.extractors[0]
+
+	child := parent.With(WithValueExtractor(key2))
+
+	// Parent's slice must not have been extended or mutated.
+	require.Equal(t, parentLenBefore, len(parent.extractors))
+	require.NotSame(t, &parent.extractors[0], &child.extractors[0])
+
+	// Mutating the child's extractor slice must not affect the parent.
+	child.extractors[0] = nil
+
+	observed.TakeAll()
+	ctx := context.WithValue(context.Background(), key1, "user-parent")
+	parent.Ctx(ctx).Info("parent-unchanged")
+	entries := observed.TakeAll()
+	require.Len(t, entries, 1)
+	fields := entries[0].ContextMap()
+	require.Equal(t, "user-parent", fields[key1.String()])
+	// Parent's first extractor must still be intact.
+	require.NotNil(t, parent.extractors[0])
+	require.Equal(t,
+		fmt.Sprintf("%p", parentFirst),
+		fmt.Sprintf("%p", parent.extractors[0]),
+	)
+}
+
+func TestContextLogger_WithValueExtractor_KeySliceCopied(t *testing.T) {
+	logger, observed := newTestLogger()
+
+	key1 := contextKeyString("user_id")
+	key2 := contextKeyString("other")
+
+	keys := []contextKeyString{key1}
+	cl := WithContext(logger, WithValueExtractor(keys...))
+
+	// Caller mutates their slice after construction; extractor must be unaffected.
+	keys[0] = key2
+
+	ctx := context.WithValue(context.Background(), key1, "user-orig")
+	ctx = context.WithValue(ctx, key2, "should-not-appear")
+
+	observed.TakeAll()
+	cl.Ctx(ctx).Info("key-slice-copied")
+	entries := observed.TakeAll()
+	require.Len(t, entries, 1)
+	fields := entries[0].ContextMap()
+
+	require.Equal(t, "user-orig", fields[key1.String()])
+	_, ok := fields[key2.String()]
+	require.False(t, ok)
 }
 
 func TestContextLogger_Logger(t *testing.T) {
