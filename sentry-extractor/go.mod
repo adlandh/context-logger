@@ -3,7 +3,7 @@ module github.com/adlandh/context-logger/sentry-extractor
 go 1.25.0
 
 require (
-	github.com/adlandh/context-logger v1.6.3
+	github.com/adlandh/context-logger v1.6.4
 	github.com/getsentry/sentry-go v0.46.2
 	github.com/stretchr/testify v1.11.1
 	go.uber.org/zap v1.28.0
@@ -14,7 +14,7 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/sys v0.43.0 // indirect
-	golang.org/x/text v0.36.0 // indirect
+	golang.org/x/sys v0.44.0 // indirect
+	golang.org/x/text v0.37.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
