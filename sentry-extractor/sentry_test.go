@@ -201,6 +201,32 @@ func TestSentryExtractor_CombinedWithOtherExtractors(t *testing.T) {
 	})
 }
 
+func TestSentryExtractor_ZeroValuedSpan(t *testing.T) {
+	_ = setUpSentry(t)
+	logger, observed := newTestLogger()
+	cl := ctxLogger.WithContext(logger, With())
+
+	t.Run("zeroed span IDs do not panic and produce zero strings", func(t *testing.T) {
+		observed.TakeAll()
+		span := sentry.StartSpan(context.Background(), "")
+		span.TraceID = sentry.TraceID{}
+		span.SpanID = sentry.SpanID{}
+		defer span.Finish()
+
+		fields := logAndAssert(t, span.Context(), observed, cl, "zero-ids")
+
+		traceID, ok := fields[FieldTraceID].(string)
+		require.True(t, ok)
+		require.Equal(t, sentry.TraceID{}.String(), traceID)
+
+		spanID, ok := fields[FieldSpanID].(string)
+		require.True(t, ok)
+		require.Equal(t, sentry.SpanID{}.String(), spanID)
+
+		require.Equal(t, "", fields[FieldSpanOp])
+	})
+}
+
 func TestSentryExtractor_SpanStatus(t *testing.T) {
 	_ = setUpSentry(t)
 	logger, observed := newTestLogger()

@@ -87,14 +87,16 @@ func WithValueExtractor[T interface {
 	comparable
 	fmt.Stringer
 }](key ...T) ContextExtractor {
+	keys := append([]T(nil), key...)
+
 	return func(ctx context.Context) []zap.Field {
-		if len(key) == 0 {
+		if len(keys) == 0 {
 			return nil
 		}
 
-		fields := make([]zap.Field, 0, len(key))
+		fields := make([]zap.Field, 0, len(keys))
 
-		for _, k := range key {
+		for _, k := range keys {
 			if val := ctx.Value(k); val != nil {
 				fields = append(fields, zap.Any(k.String(), val))
 			}
