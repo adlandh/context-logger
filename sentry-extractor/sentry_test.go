@@ -223,7 +223,7 @@ func TestSentryExtractor_ZeroValuedSpan(t *testing.T) {
 		require.True(t, ok)
 		require.Equal(t, sentry.SpanID{}.String(), spanID)
 
-		require.Equal(t, "", fields[FieldSpanOp])
+		require.Empty(t, fields[FieldSpanOp])
 	})
 }
 

@@ -437,7 +437,7 @@ func TestContextLogger_CtxIsSideEffectFree(t *testing.T) {
 	lenBefore := len(extractorsBefore)
 	baseLogger := cl.Logger()
 
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		observed.TakeAll()
 		cl.Ctx(ctx).Info("repeat")
 		entries := observed.TakeAll()
@@ -474,12 +474,12 @@ func TestContextLogger_CtxConcurrent(t *testing.T) {
 	var wg sync.WaitGroup
 	start := make(chan struct{})
 
-	for g := 0; g < goroutines; g++ {
+	for range goroutines {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			<-start
-			for i := 0; i < iterations; i++ {
+			for range iterations {
 				l := cl.Ctx(ctx)
 				require.NotNil(t, l)
 				// Also exercise With() which constructs a new combined slice.
