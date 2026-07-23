@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+  <title id="title">Context Logger for Go and Zap</title>
+  <desc id="desc">Context Logger moves request IDs, deadlines, and trace metadata from context.Context through composable extractors into structured Zap log entries.</desc>
+
+  <rect width="1200" height="420" rx="28" fill="#0B1110"/>
+  <path d="M626 48V372" stroke="#26332E"/>
+
+  <g id="title-block" transform="translate(58 50)">
+    <text fill="#7DE0B0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="700" letter-spacing="2">GO / CONTEXT-AWARE ZAP LOGGING</text>
+    <text x="0" y="98" fill="#F4F7F2" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="72" font-weight="750" letter-spacing="-3">context</text>
+    <text x="0" y="168" fill="#F4B860" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="72" font-weight="750" letter-spacing="-3">logger</text>
+    <text x="2" y="220" fill="#C8D1CC" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="24">Request metadata in. Structured fields out.</text>
+    <text x="2" y="256" fill="#AEBAB4" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="20">Keep the Zap API you already use.</text>
+
+    <g transform="translate(0 306)">
+      <path d="M0 0H430" stroke="#34463F"/>
+      <text y="30" fill="#C8D1CC" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18">ctxLogger.Ctx(ctx).Info(...)</text>
+    </g>
+  </g>
+
+  <g id="context-flow" transform="translate(666 48)">
+    <g id="context-source">
+      <rect width="476" height="94" rx="10" fill="#111A17" stroke="#34463F"/>
+      <text x="24" y="31" fill="#AEBAB4" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" letter-spacing="1">context.Context</text>
+      <rect x="24" y="47" width="126" height="30" rx="6" fill="#183127"/>
+      <text x="87" y="68" fill="#7DE0B0" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17">request_id</text>
+      <rect x="162" y="47" width="126" height="30" rx="6" fill="#183127"/>
+      <text x="225" y="68" fill="#7DE0B0" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17">deadline</text>
+      <rect x="300" y="47" width="152" height="30" rx="6" fill="#183127"/>
+      <text x="376" y="68" fill="#7DE0B0" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17">trace_id</text>
+    </g>
+
+    <path d="M238 94V122" stroke="#7DE0B0" stroke-width="2"/>
+    <path d="M232 116L238 122L244 116" fill="none" stroke="#7DE0B0" stroke-width="2"/>
+
+    <g id="extractor-stage" transform="translate(54 122)">
+      <rect width="368" height="70" rx="10" fill="#14201C" stroke="#4C665B"/>
+      <circle cx="26" cy="35" r="5" fill="#7DE0B0"/>
+      <text x="46" y="30" fill="#F4F7F2" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="22" font-weight="650">Ctx(ctx)</text>
+      <text x="46" y="52" fill="#AEBAB4" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16">extractors -&gt; []zap.Field</text>
+    </g>
+
+    <path d="M238 192V220" stroke="#7DE0B0" stroke-width="2"/>
+    <path d="M232 214L238 220L244 214" fill="none" stroke="#7DE0B0" stroke-width="2"/>
+
+    <g id="log-output" transform="translate(0 220)">
+      <rect width="476" height="132" rx="10" fill="#111A17" stroke="#34463F"/>
+      <circle cx="24" cy="24" r="5" fill="#F4B860"/>
+      <text x="40" y="30" fill="#C8D1CC" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17">zap.Logger</text>
+      <text x="24" y="58" fill="#F4F7F2" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16">{ "msg": "request completed",</text>
+      <text x="24" y="79" fill="#7DE0B0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16">  "request_id": "req-7f3",</text>
+      <text x="24" y="100" fill="#7DE0B0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16">  "context_time_left": 1.8,</text>
+      <text x="24" y="121" fill="#7DE0B0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16">  "trace_id": "4bf9..." }</text>
+    </g>
+  </g>
+</svg>

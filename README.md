@@ -1,28 +1,27 @@
+<p align="center">
+  <picture>
+    <source media="(max-width: 600px)" srcset="./assets/readme/hero-mobile.svg">
+    <img src="./assets/readme/hero.svg" width="100%" alt="Context Logger moves request IDs, deadlines, and trace metadata from context.Context into structured Zap log entries">
+  </picture>
+</p>
+
+<p align="center">
+  <a href="https://pkg.go.dev/github.com/adlandh/context-logger"><img src="https://pkg.go.dev/badge/github.com/adlandh/context-logger.svg" alt="Go Reference"></a>
+  <a href="https://github.com/adlandh/context-logger/actions/workflows/test.yml"><img src="https://github.com/adlandh/context-logger/actions/workflows/test.yml/badge.svg" alt="Test status"></a>
+  <a href="https://goreportcard.com/report/github.com/adlandh/context-logger"><img src="https://goreportcard.com/badge/github.com/adlandh/context-logger" alt="Go Report Card"></a>
+</p>
+
 # Context Logger
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/adlandh/context-logger.svg)](https://pkg.go.dev/github.com/adlandh/context-logger)
-[![Go Report Card](https://goreportcard.com/badge/github.com/adlandh/context-logger)](https://goreportcard.com/report/github.com/adlandh/context-logger)
+`context-logger` enriches [Zap](https://pkg.go.dev/go.uber.org/zap) entries with request-scoped values from `context.Context`. Register explicit extractors once, then keep using the normal `*zap.Logger` API.
 
-A lightweight Go library that enhances [Zap logger](https://pkg.go.dev/go.uber.org/zap) by automatically adding fields from `context.Context`.
+## Start here
 
-## Features
-
-- Seamlessly integrates with Zap logger
-- Extracts values from context and adds them as structured log fields
-- Supports multiple extractors that can be combined
-- Includes built-in extractors for common use cases
-- Extensible with custom extractors
-- Keeps Zap APIs familiar via a context-aware wrapper
-
-## Installation
+Requires Go 1.25.
 
 ```bash
 go get github.com/adlandh/context-logger
 ```
-
-## Usage
-
-### Basic Usage
 
 ```go
 package main
@@ -36,140 +35,109 @@ import (
 
 type contextKey string
 
-func (c contextKey) String() string {
-	return string(c)
-}
+func (k contextKey) String() string { return string(k) }
 
-var userIDKey = contextKey("user_id")
+const requestIDKey = contextKey("request_id")
 
 func main() {
-	// Create a Zap logger
 	logger, _ := zap.NewProduction()
+	ctxLogger := ctxlog.New(logger, ctxlog.WithValueExtractor(requestIDKey))
 
-	// Create a context logger with a value extractor (using New or WithContext)
-	ctxLogger := ctxlog.New(logger, ctxlog.WithValueExtractor(userIDKey))
-	// Or equivalently:
-	// ctxLogger := ctxlog.WithContext(logger, ctxlog.WithValueExtractor(userIDKey))
-
-	// Create a context with a value
-	ctx := context.WithValue(context.Background(), userIDKey, "user-123")
-
-	// Log with the context
-	// This will automatically include "user_id":"user-123" in the log entry
-	ctxLogger.Ctx(ctx).Info("User action performed")
+	ctx := context.WithValue(context.Background(), requestIDKey, "req-7f3")
+	ctxLogger.Ctx(ctx).Info("request completed", zap.Int("status", 200))
 }
 ```
 
-`Ctx(ctx)` returns a `*zap.Logger` with fields extracted from `ctx` attached via `With(...)`; `Ctx(nil)` is supported and uses `context.Background()`.
+Relevant fields in the resulting entry:
 
-### Extractors and Composition
+```json
+{"msg":"request completed","request_id":"req-7f3","status":200}
+```
 
-`WithContext` accepts one or more extractors. Each extractor can add fields derived from the context, and all extractors are applied for every log call.
+Use package-local typed keys instead of strings to prevent collisions. Keys passed to `WithValueExtractor` must be comparable and implement `fmt.Stringer`; their string value becomes the Zap field name.
+
+## Compose extractors
+
+Every extractor is a `func(context.Context) []zap.Field`. Combine value, deadline, tracing, and custom extractors at construction time:
 
 ```go
 ctxLogger := ctxlog.WithContext(
 	logger,
-	ctxlog.WithValueExtractor(userIDKey),
-	ctxlog.WithValueExtractor(contextKey("request_id")),
+	ctxlog.WithValueExtractor(requestIDKey, userIDKey),
 	ctxlog.WithDeadlineExtractor(),
-	ctxlog.WithContextCarrier("ctx"),
+	otelextractor.With(),
 )
+
+ctxLogger.Ctx(ctx).Info("request handled")
 ```
 
-### Context Key Guidelines
+`Ctx(ctx)` applies the configured extractors and returns a `*zap.Logger` with their fields attached. Extractors that have nothing to add return `nil`.
 
-`WithValueExtractor` expects keys that implement `fmt.Stringer`. This lets the extractor use the key's string value as the log field name.
+## Built-in extractors
 
-Use a typed key (like the `contextKey` example) instead of raw string keys to avoid collisions across packages.
+- **`WithValueExtractor(keys...)`** adds non-nil context values with `zap.Any`.
+- **`WithDeadlineExtractor()`** adds `context_deadline_at` and `context_time_left` when a deadline exists. It also adds `context_error` after cancellation or deadline expiry.
+- **`WithContextCarrier(fieldName)`** passes the raw context to a custom Zap core or encoder. It uses `zapcore.SkipType`, so standard encoders do not emit it.
 
-```go
-type contextKey string
+## Trace correlation
 
-func (c contextKey) String() string { return string(c) }
-```
-
-### Web Application Example
-
-See the [full example](./example/main.go) for a web application using Echo framework.
-
-## Available Extractors
-
-### Built-in Extractors
-
-- **WithValueExtractor**: Extracts values from context using keys that implement `fmt.Stringer`
-- **WithDeadlineExtractor**: Extracts deadline metadata from context (`context_deadline_at`, `context_time_left`) and adds `context_error` when the context is done
-- **WithContextCarrier**: Attaches the `context.Context` to the logger for custom cores/encoders (field is not emitted by default)
-
-Usage note: `WithContextCarrier` is useful when you have a custom zap core/encoder that knows how to pull values from the context. The carrier field is a skip-type field, so it will not appear in logs unless your core/encoder handles it explicitly.
-
-```go
-ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-defer cancel()
-
-ctxLogger := ctxlog.WithContext(logger, ctxlog.WithDeadlineExtractor())
-ctxLogger.Ctx(ctx).Info("processing request")
-// Adds:
-// - context_deadline_at (time.Time)
-// - context_time_left (time.Duration)
-// - context_error (string, only when ctx.Err() is non-nil)
-```
-
-### Additional Extractors (in separate modules)
-
-- **Sentry Extractor**: Extracts Sentry trace information (trace_id, span_id, span_status, span_op)
-  ```go
-  import "github.com/adlandh/context-logger/sentry-extractor"
-
-  // Use the extractor
-  ctxLogger := ctxlog.WithContext(logger, sentryextractor.With())
-  ```
-
-- **OpenTelemetry Extractor**: Extracts OpenTelemetry trace information (trace_id, span_id)
-  ```go
-  import "github.com/adlandh/context-logger/otel-extractor"
-
-  // Use the extractor
-  ctxLogger := ctxlog.WithContext(logger, otelextractor.With())
-  ```
-
-### Installing Extractor Modules
-
-Each extractor module has its own `go.mod`, so install them explicitly:
+OpenTelemetry and Sentry integrations live in separate Go modules, so applications only install the tracing SDK they use.
 
 ```bash
 go get github.com/adlandh/context-logger/otel-extractor
 go get github.com/adlandh/context-logger/sentry-extractor
 ```
 
-## Creating Custom Extractors
+```go
+import (
+	otelextractor "github.com/adlandh/context-logger/otel-extractor"
+	sentryextractor "github.com/adlandh/context-logger/sentry-extractor"
+)
 
-You can create custom extractors by implementing the `ContextExtractor` function type:
+otelLogger := ctxlog.New(logger, otelextractor.With())
+sentryLogger := ctxlog.New(logger, sentryextractor.With())
+```
+
+- OpenTelemetry adds `trace_id` and `span_id` for valid span contexts.
+- Sentry adds `trace_id`, `span_id`, `span_status`, and `span_op` when a span is present.
+
+## Custom extractors
+
+Keep extractors cheap and side-effect free because they run on every `Ctx` call.
 
 ```go
-func MyCustomExtractor() ctxlog.ContextExtractor {
+func WithTenant() ctxlog.ContextExtractor {
 	return func(ctx context.Context) []zap.Field {
-		// Extract values from context
-		// Return them as zap.Field slice
-		return []zap.Field{
-			zap.String("custom_field", "custom_value"),
+		tenant, ok := ctx.Value(tenantKey).(string)
+		if !ok || tenant == "" {
+			return nil
 		}
+
+		return []zap.Field{zap.String("tenant_id", tenant)}
 	}
 }
 ```
 
-## API Overview
+## Behavior
 
-- `New(logger, extractors...)` creates a new ContextLogger (alias for `WithContext`)
-- `WithContext(logger, extractors...)` wraps a Zap logger and returns a context-aware facade
-- `Ctx(ctx)` returns a logger bound to that context for the next call
-- `With(extractors...)` returns a new ContextLogger with additional extractors (does not modify original)
-- `Logger()` returns the underlying Zap logger
-- `ContextExtractor` is `func(context.Context) []zap.Field`
+- `New` and `WithContext` are equivalent constructors.
+- A nil underlying logger falls back to `zap.NewNop()`.
+- `Ctx(nil)` uses `context.Background()`.
+- `With(extractors...)` returns a new `ContextLogger` without modifying the original.
+- `Logger()` returns the underlying `*zap.Logger`.
 
-## Testing
+See the complete API on [pkg.go.dev](https://pkg.go.dev/github.com/adlandh/context-logger) and the [Echo request-ID example](./example/main.go) for HTTP integration.
+
+## Development
+
+Each extractor is a separate module and test target:
 
 ```bash
 go test -cover -race ./...
-cd otel-extractor && go test -cover -race ./...
-cd sentry-extractor && go test -cover -race ./...
+(cd otel-extractor && go test -cover -race ./...)
+(cd sentry-extractor && go test -cover -race ./...)
 ```
+
+## License
+
+[MIT](./LICENSE)
