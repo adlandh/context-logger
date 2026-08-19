@@ -76,7 +76,7 @@ ctxLogger.Ctx(ctx).Info("request handled")
 ## Built-in extractors
 
 - **`WithValueExtractor(keys...)`** adds non-nil context values with `zap.Any`.
-- **`WithDeadlineExtractor()`** adds `context_deadline_at` and `context_time_left` when a deadline exists. It also adds `context_error` after cancellation or deadline expiry.
+- **`WithDeadlineExtractor()`** adds `context_deadline_at` and `context_time_left` when a deadline exists. It also adds `context_error` after cancellation or deadline expiry, and `context_cause` when the context was canceled with a distinct cause (see `context.WithCancelCause`).
 - **`WithContextCarrier(fieldName)`** passes the raw context to a custom Zap core or encoder. It uses `zapcore.SkipType`, so standard encoders do not emit it.
 
 ## Trace correlation

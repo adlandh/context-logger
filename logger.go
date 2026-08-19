@@ -16,6 +16,7 @@ const (
 	FieldContextDeadlineAt = "context_deadline_at"
 	FieldContextTimeLeft   = "context_time_left"
 	FieldContextError      = "context_error"
+	FieldContextCause      = "context_cause"
 )
 
 type ContextLogger struct {
@@ -122,6 +123,10 @@ func WithContextCarrier(fieldName string) ContextExtractor {
 	}
 }
 
+// WithDeadlineExtractor adds context_deadline_at and context_time_left when the context
+// has a deadline. After cancellation or deadline expiry it adds context_error, and
+// context_cause when the cancellation cause (see context.WithCancelCause) differs from
+// the context error.
 func WithDeadlineExtractor() ContextExtractor {
 	return func(ctx context.Context) []zap.Field {
 		deadline, ok := ctx.Deadline()
@@ -129,15 +134,21 @@ func WithDeadlineExtractor() ContextExtractor {
 			return nil
 		}
 
-		fields := make([]zap.Field, 0, 3)
+		fields := make([]zap.Field, 0, 4)
 
 		fields = append(fields,
 			zap.Time(FieldContextDeadlineAt, deadline),
 			zap.Duration(FieldContextTimeLeft, time.Until(deadline)),
 		)
 
-		if ctx.Err() != nil {
-			fields = append(fields, zap.String(FieldContextError, ctx.Err().Error()))
+		if err := ctx.Err(); err != nil {
+			fields = append(fields, zap.String(FieldContextError, err.Error()))
+
+			//nolint:errorlint // exact equality is intentional: Cause returns ctx.Err() verbatim
+			// when no cause was set, while errors.Is would also drop wrapped causes.
+			if cause := context.Cause(ctx); cause != err {
+				fields = append(fields, zap.String(FieldContextCause, cause.Error()))
+			}
 		}
 
 		return fields
