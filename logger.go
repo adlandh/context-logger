@@ -44,6 +44,10 @@ func WithContext(logger *zap.Logger, extractors ...ContextExtractor) *ContextLog
 }
 
 func (c *ContextLogger) Ctx(ctx context.Context) *zap.Logger {
+	if len(c.extractors) == 0 {
+		return c.logger
+	}
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
