@@ -8,13 +8,6 @@ import (
 )
 
 func BenchmarkWith(b *testing.B) {
-	err := sentry.Init(sentry.ClientOptions{
-		Transport: &transportMock{},
-	})
-	if err != nil {
-		b.Fatalf("init sentry: %v", err)
-	}
-
 	extractor := With()
 
 	rootSpan := sentry.StartSpan(context.Background(), "root-operation")
