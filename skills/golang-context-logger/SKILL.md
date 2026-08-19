@@ -29,7 +29,7 @@ This package keeps the normal zap API: call `ctxLogger.Ctx(ctx)` to get a `*zap.
 Use this skill when the task involves:
 
 - Adding request IDs, user IDs, tenant IDs, correlation IDs, or similar request-scoped values to zap logs.
-- Logging context deadline metadata such as `context_deadline_at`, `context_time_left`, and `context_error`.
+- Logging context deadline metadata such as `context_deadline_at`, `context_time_left`, `context_error`, and `context_cause`.
 - Adding OpenTelemetry `trace_id` and `span_id` fields to logs.
 - Adding Sentry `trace_id`, `span_id`, `span_status`, and `span_op` fields to logs.
 - Writing a custom `ContextExtractor`.
@@ -123,6 +123,7 @@ Fields:
 - `context_deadline_at`: the deadline as `time.Time`.
 - `context_time_left`: duration until the deadline.
 - `context_error`: present only when `ctx.Err()` is non-nil.
+- `context_cause`: present only when the context was canceled with a distinct cause via `context.WithCancelCause`.
 
 No fields are emitted when the context has no deadline.
 

@@ -34,7 +34,7 @@
 - `With(extractors...)` returns a new `ContextLogger` when adding extractors; it must not mutate the original extractor slice.
 - `WithValueExtractor` accepts comparable `fmt.Stringer` keys and emits fields with `zap.Any(k.String(), val)` only when `ctx.Value(k)` is non-nil.
 - `WithContextCarrier` intentionally uses `zapcore.SkipType`; standard zap encoders will not emit the carrier field.
-- `WithDeadlineExtractor` only emits fields when the context has a deadline, and adds `context_error` only when `ctx.Err()` is non-nil.
+- `WithDeadlineExtractor` only emits fields when the context has a deadline, adds `context_error` only when `ctx.Err()` is non-nil, and adds `context_cause` only when `context.Cause(ctx)` differs from `ctx.Err()` (strict `!=`, not `errors.Is` — wrapped causes must still be emitted; guarded by `//nolint:errorlint`).
 
 ## Testing Patterns
 

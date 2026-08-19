@@ -271,6 +271,41 @@ func TestContextLogger_WithDeadlineExtractor(t *testing.T) {
 		require.WithinDuration(t, deadline, deadlineAt, 50*time.Millisecond)
 
 		require.Equal(t, "context canceled", fields["context_error"])
+
+		_, ok = fields["context_cause"]
+		require.False(t, ok, "plain cancel must not emit context_cause")
+	})
+
+	t.Run("canceled with cause", func(t *testing.T) {
+		observed.TakeAll()
+		deadline := time.Now().Add(2 * time.Second)
+		deadlineCtx, deadlineCancel := context.WithDeadline(context.Background(), deadline)
+		defer deadlineCancel()
+		ctx, cancel := context.WithCancelCause(deadlineCtx)
+		defer cancel(nil)
+		cancel(fmt.Errorf("connection reset by peer"))
+
+		cl := WithContext(logger, WithDeadlineExtractor())
+		fields := logAndAssert(t, ctx, observed, cl, "canceled-with-cause")
+
+		require.Equal(t, "context canceled", fields["context_error"])
+		require.Equal(t, "connection reset by peer", fields["context_cause"])
+	})
+
+	t.Run("canceled with wrapped cause", func(t *testing.T) {
+		observed.TakeAll()
+		deadline := time.Now().Add(2 * time.Second)
+		deadlineCtx, deadlineCancel := context.WithDeadline(context.Background(), deadline)
+		defer deadlineCancel()
+		ctx, cancel := context.WithCancelCause(deadlineCtx)
+		defer cancel(nil)
+		cancel(fmt.Errorf("shutdown: %w", context.Canceled))
+
+		cl := WithContext(logger, WithDeadlineExtractor())
+		fields := logAndAssert(t, ctx, observed, cl, "wrapped-cause")
+
+		require.Equal(t, "context canceled", fields["context_error"])
+		require.Equal(t, "shutdown: context canceled", fields["context_cause"])
 	})
 }
 
