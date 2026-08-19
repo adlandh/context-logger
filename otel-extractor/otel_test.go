@@ -6,8 +6,6 @@ import (
 
 	ctxLogger "github.com/adlandh/context-logger"
 	"github.com/stretchr/testify/require"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"go.opentelemetry.io/otel/trace/noop"
 	"go.uber.org/zap"
@@ -47,12 +45,6 @@ func createSpanContext(traceID, spanID []byte) trace.SpanContext {
 	})
 }
 
-func setUpPropagator(t *testing.T) {
-	prev := otel.GetTextMapPropagator()
-	otel.SetTextMapPropagator(propagation.TraceContext{})
-	t.Cleanup(func() { otel.SetTextMapPropagator(prev) })
-}
-
 func TestOtelExtractor_NoSpanContext(t *testing.T) {
 	logger, observed := newTestLogger()
 	cl := ctxLogger.WithContext(logger, With())
@@ -82,7 +74,6 @@ func TestOtelExtractor_NoSpanContext(t *testing.T) {
 
 func TestOtelExtractor_WithTracerProvider(t *testing.T) {
 	provider := noop.NewTracerProvider()
-	setUpPropagator(t)
 
 	logger, observed := newTestLogger()
 	cl := ctxLogger.WithContext(logger, With())
@@ -134,7 +125,6 @@ func TestOtelExtractor_WithTracerProvider(t *testing.T) {
 
 func TestOtelExtractor_InvalidSpanContext(t *testing.T) {
 	provider := noop.NewTracerProvider()
-	setUpPropagator(t)
 
 	logger, observed := newTestLogger()
 	cl := ctxLogger.WithContext(logger, With())
@@ -189,8 +179,6 @@ func TestOtelExtractor_InvalidSpanContext(t *testing.T) {
 }
 
 func TestOtelExtractor_CombinedWithOtherExtractors(t *testing.T) {
-	setUpPropagator(t)
-
 	logger, observed := newTestLogger()
 	cl := ctxLogger.WithContext(logger, With(), ctxLogger.WithValueExtractor[contextKey](contextKey("request_id")))
 

@@ -2,9 +2,7 @@ package sentryextractor
 
 import (
 	"context"
-	"sync"
 	"testing"
-	"time"
 
 	ctxLogger "github.com/adlandh/context-logger"
 	"github.com/getsentry/sentry-go"
@@ -12,37 +10,6 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest/observer"
 )
-
-var _ sentry.Transport = (*transportMock)(nil)
-
-type transportMock struct {
-	sync.Mutex
-	events []*sentry.Event
-}
-
-func (*transportMock) Configure(_ sentry.ClientOptions) {}
-
-func (t *transportMock) SendEvent(event *sentry.Event) {
-	t.Lock()
-	defer t.Unlock()
-	t.events = append(t.events, event)
-}
-
-func (*transportMock) Flush(_ time.Duration) bool {
-	return true
-}
-
-func (t *transportMock) FlushWithContext(_ context.Context) bool {
-	return t.Flush(0)
-}
-
-func (t *transportMock) Events() []*sentry.Event {
-	t.Lock()
-	defer t.Unlock()
-	return t.events
-}
-
-func (*transportMock) Close() {}
 
 type testContextKey string
 
@@ -68,17 +35,6 @@ func logAndAssert(
 	require.Len(t, entries, 1)
 	require.Equal(t, msg, entries[0].Message)
 	return entries[0].ContextMap()
-}
-
-func setUpSentry(t *testing.T) *transportMock {
-	transport := &transportMock{}
-	err := sentry.Init(sentry.ClientOptions{
-		Transport:   transport,
-		Environment: "test",
-	})
-	require.NoError(t, err)
-	t.Cleanup(func() { sentry.Flush(time.Second) })
-	return transport
 }
 
 func TestSentryExtractor_NoSpan(t *testing.T) {
@@ -112,7 +68,6 @@ func TestSentryExtractor_NoSpan(t *testing.T) {
 }
 
 func TestSentryExtractor_WithSpan(t *testing.T) {
-	_ = setUpSentry(t)
 	logger, observed := newTestLogger()
 	cl := ctxLogger.WithContext(logger, With())
 
@@ -160,7 +115,6 @@ func TestSentryExtractor_WithSpan(t *testing.T) {
 }
 
 func TestSentryExtractor_MultipleSpans(t *testing.T) {
-	_ = setUpSentry(t)
 	logger, observed := newTestLogger()
 	cl := ctxLogger.WithContext(logger, With())
 
@@ -183,7 +137,6 @@ func TestSentryExtractor_MultipleSpans(t *testing.T) {
 }
 
 func TestSentryExtractor_CombinedWithOtherExtractors(t *testing.T) {
-	_ = setUpSentry(t)
 	logger, observed := newTestLogger()
 	cl := ctxLogger.WithContext(logger, With(), ctxLogger.WithValueExtractor[testContextKey](testContextKey("request_id")))
 
@@ -202,7 +155,6 @@ func TestSentryExtractor_CombinedWithOtherExtractors(t *testing.T) {
 }
 
 func TestSentryExtractor_ZeroValuedSpan(t *testing.T) {
-	_ = setUpSentry(t)
 	logger, observed := newTestLogger()
 	cl := ctxLogger.WithContext(logger, With())
 
@@ -228,7 +180,6 @@ func TestSentryExtractor_ZeroValuedSpan(t *testing.T) {
 }
 
 func TestSentryExtractor_SpanStatus(t *testing.T) {
-	_ = setUpSentry(t)
 	logger, observed := newTestLogger()
 	cl := ctxLogger.WithContext(logger, With())
 
