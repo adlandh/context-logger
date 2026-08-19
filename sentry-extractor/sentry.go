@@ -11,12 +11,17 @@ import (
 )
 
 const (
-	FieldTraceID    = "trace_id"
-	FieldSpanID     = "span_id"
+	// FieldTraceID identifies the Sentry trace ID field.
+	FieldTraceID = "trace_id"
+	// FieldSpanID identifies the Sentry span ID field.
+	FieldSpanID = "span_id"
+	// FieldSpanStatus identifies the Sentry span status field.
 	FieldSpanStatus = "span_status"
-	FieldSpanOp     = "span_op"
+	// FieldSpanOp identifies the Sentry span operation field.
+	FieldSpanOp = "span_op"
 )
 
+// With returns an extractor for fields from the Sentry span in a context.
 func With() ctxLogger.ContextExtractor {
 	return func(ctx context.Context) []zap.Field {
 		span := sentry.SpanFromContext(ctx)

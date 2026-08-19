@@ -10,10 +10,13 @@ import (
 )
 
 const (
+	// FieldTraceID identifies the OpenTelemetry trace ID field.
 	FieldTraceID = "trace_id"
-	FieldSpanID  = "span_id"
+	// FieldSpanID identifies the OpenTelemetry span ID field.
+	FieldSpanID = "span_id"
 )
 
+// With returns an extractor for valid OpenTelemetry trace and span IDs.
 func With() ctxLogger.ContextExtractor {
 	return func(ctx context.Context) []zap.Field {
 		spanContext := trace.SpanContextFromContext(ctx)

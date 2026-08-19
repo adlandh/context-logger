@@ -10,15 +10,21 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// ContextExtractor extracts zap fields from a context.
 type ContextExtractor func(ctx context.Context) []zap.Field
 
 const (
+	// FieldContextDeadlineAt identifies the context deadline timestamp field.
 	FieldContextDeadlineAt = "context_deadline_at"
-	FieldContextTimeLeft   = "context_time_left"
-	FieldContextError      = "context_error"
-	FieldContextCause      = "context_cause"
+	// FieldContextTimeLeft identifies the duration remaining before the deadline.
+	FieldContextTimeLeft = "context_time_left"
+	// FieldContextError identifies the context cancellation or deadline error.
+	FieldContextError = "context_error"
+	// FieldContextCause identifies a cancellation cause distinct from the context error.
+	FieldContextCause = "context_cause"
 )
 
+// ContextLogger attaches fields extracted from a context to a zap logger.
 type ContextLogger struct {
 	logger     *zap.Logger
 	extractors []ContextExtractor
@@ -43,6 +49,8 @@ func WithContext(logger *zap.Logger, extractors ...ContextExtractor) *ContextLog
 	return New(logger, extractors...)
 }
 
+// Ctx returns the underlying logger with fields extracted from ctx.
+// A nil context is treated as context.Background().
 func (c *ContextLogger) Ctx(ctx context.Context) *zap.Logger {
 	if ctx == nil {
 		ctx = context.Background()
@@ -61,6 +69,8 @@ func (c *ContextLogger) Ctx(ctx context.Context) *zap.Logger {
 	return c.logger.With(additionalFields...)
 }
 
+// With returns a new ContextLogger with the additional extractors.
+// It returns the receiver unchanged when no extractors are provided.
 func (c *ContextLogger) With(extractors ...ContextExtractor) *ContextLogger {
 	if len(extractors) == 0 {
 		return c
@@ -80,10 +90,13 @@ func (c *ContextLogger) With(extractors ...ContextExtractor) *ContextLogger {
 	}
 }
 
+// Logger returns the underlying zap logger.
 func (c *ContextLogger) Logger() *zap.Logger {
 	return c.logger
 }
 
+// WithValueExtractor extracts non-nil context values using each key's string
+// representation as the zap field name.
 func WithValueExtractor[T interface {
 	comparable
 	fmt.Stringer
@@ -107,6 +120,8 @@ func WithValueExtractor[T interface {
 	}
 }
 
+// WithContextCarrier exposes ctx to custom zap cores under fieldName.
+// Standard zap encoders skip the carrier field.
 func WithContextCarrier(fieldName string) ContextExtractor {
 	return func(ctx context.Context) []zap.Field {
 		if fieldName == "" {
