@@ -123,7 +123,7 @@ Fields:
 - `context_deadline_at`: the deadline as `time.Time`.
 - `context_time_left`: duration until the deadline.
 - `context_error`: present only when `ctx.Err()` is non-nil.
-- `context_cause`: present only when the context was canceled with a distinct cause via `context.WithCancelCause`.
+- `context_cause`: present only when `context.Cause(ctx)` differs from `ctx.Err()`, including causes set by `context.WithCancelCause`, `context.WithDeadlineCause`, or `context.WithTimeoutCause`.
 
 No fields are emitted when the context has no deadline.
 
