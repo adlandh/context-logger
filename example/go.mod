@@ -6,7 +6,7 @@ replace github.com/adlandh/context-logger => ../
 
 require (
 	github.com/adlandh/context-logger v1.6.3
-	github.com/labstack/echo/v4 v4.15.1
+	github.com/labstack/echo/v4 v4.15.3
 	go.uber.org/zap v1.28.0
 )
 
