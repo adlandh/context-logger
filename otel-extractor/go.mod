@@ -3,7 +3,7 @@ module github.com/adlandh/context-logger/otel-extractor
 go 1.26.0
 
 require (
-	github.com/adlandh/context-logger v1.6.6
+	github.com/adlandh/context-logger v1.6.7
 	github.com/stretchr/testify v1.12.1
 	go.opentelemetry.io/otel/trace v1.47.0
 	go.uber.org/zap v1.28.0
