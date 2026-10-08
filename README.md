@@ -17,7 +17,7 @@
 
 ## Start here
 
-Requires Go 1.25.
+Requires Go 1.26.
 
 ```bash
 go get github.com/adlandh/context-logger
