@@ -1,6 +1,6 @@
 module github.com/adlandh/context-logger/example
 
-go 1.25.0
+go 1.26
 
 replace github.com/adlandh/context-logger => ../
 

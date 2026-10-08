@@ -2,7 +2,7 @@
 
 ## Shape Of This Repo
 
-- This is a Go 1.25 zap logging library, not an app. Root package is `github.com/adlandh/context-logger` in `logger.go`.
+- This is a Go 1.26 zap logging library, not an app. Root package is `github.com/adlandh/context-logger` in `logger.go`.
 - `otel-extractor/` and `sentry-extractor/` are separate Go modules with their own `go.mod` and `go.sum`; they are not in a Go workspace.
 - The extractor modules currently depend on the published root module version (`github.com/adlandh/context-logger v1.6.3`), not the local parent directory. Local root changes are not automatically exercised by submodule tests.
 - `example/` is a separate Echo example module and is reference-only; CI does not test it.
@@ -20,7 +20,7 @@
 
 ## Linting Gotchas
 
-- `.golangci.yml` is v2 config for Go 1.25 and has `run.tests: false`; lint does not analyze tests unless config changes.
+- `.golangci.yml` is v2 config for Go 1.26 and has `run.tests: false`; lint does not analyze tests unless config changes.
 - CI and Lefthook download `.golangci.yml` from `adlandh/golangci-lint-config` before linting, overwriting the local file.
 - Local lint matching Lefthook: `curl -sS https://raw.githubusercontent.com/adlandh/golangci-lint-config/refs/heads/main/.golangci.yml -o .golangci.yml && golangci-lint run && cd ./otel-extractor && golangci-lint run && cd ../sentry-extractor && golangci-lint run`.
 - If you only need current checked-in config, run `golangci-lint run` separately in root, `otel-extractor/`, and `sentry-extractor/`.
