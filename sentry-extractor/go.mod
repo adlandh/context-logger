@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/adlandh/context-logger v1.6.7
-	github.com/getsentry/sentry-go v0.49.0
+	github.com/getsentry/sentry-go v0.50.0
 	github.com/stretchr/testify v1.12.1
 	go.uber.org/zap v1.28.0
 )
